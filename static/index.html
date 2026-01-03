@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLC Platform | Adya</title>
+    <meta name="description" content="Green Loan Principles compliance platform for sustainable financing">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="/static/styles.css" rel="stylesheet">
+</head>
+
+<body class="bg-glc-off-white min-h-screen">
+    <div id="app">
+        <!-- Main Application (Dashboard) -->
+        <div id="main-app" class="flex h-screen overflow-hidden">
+            <!-- Sidebar -->
+            <aside id="sidebar">
+                <div class="p-5">
+                    <div class="flex items-center space-x-3 cursor-pointer ">
+                        <img src="/static/img/glc-logo.png" alt="Logo" class="w-12 h-12 object-contain">
+                        <div>
+                            <h2 class="font-bold text-[var(--green)]">GLC Platform</h2>
+                            <p id="user-role-display" class="text-xs text-gray-600">Borrower</p>
+                        </div>
+                    </div>
+                </div>
+
+                <nav id="nav-menu" class="p-2 space-y-2">
+                    <!-- Dynamic menu items -->
+                </nav>
+
+                <div class="absolute bottom-0 left-0 right-0 p-2">
+                    <button onclick="logout()"
+                        class="w-full py-2 px-4 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all flex items-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="flex-1 min-h-screen overflow-y-auto">
+                <header class="px-8 py-4 flex items-center justify-between">
+                    <h1 id="page-title" class="text-2xl font-bold text-glc-green">Dashboard</h1>
+                    <div class="flex items-center space-x-4">
+                        <span id="user-name" class="text-gray-400"></span>
+                        <div class="w-10 h-10 bg-glc-zinc rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-glc-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </div>
+                    </div>
+                </header>
+
+                <div id="page-content" class="p-8">
+                    <!-- Dynamic content -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,72 @@
+[
+    {
+        "org_name": "GreenTech Solar Ltd",
+        "project_name": "Solar Farm Alpha",
+        "sector": "Renewable Energy",
+        "location": "Seville, Spain",
+        "project_type": "New",
+        "amount_requested": 85000000,
+        "currency": "EUR",
+        "use_of_proceeds": "Construction of 50MW solar photovoltaic farm with battery storage. Installation of solar panels on 200 hectares of semi-arid land. Project includes grid connection infrastructure and on-site maintenance facilities.",
+        "scope1_tco2": 5000,
+        "scope2_tco2": 2000,
+        "scope3_tco2": 8000,
+        "baseline_year": 2023
+    },
+    {
+        "org_name": "Nordic Wind Power AS",
+        "project_name": "Offshore Wind Development",
+        "sector": "Renewable Energy",
+        "location": "Bergen, Norway",
+        "project_type": "New",
+        "amount_requested": 450000000,
+        "currency": "EUR",
+        "use_of_proceeds": "Development of 200MW offshore wind farm in the North Sea. Installation of 40 floating wind turbines, subsea cables, and onshore substation. Project will power 150,000 homes with clean electricity.",
+        "scope1_tco2": 15000,
+        "scope2_tco2": 8000,
+        "scope3_tco2": 25000,
+        "baseline_year": 2023
+    },
+    {
+        "org_name": "EcoTransit GmbH",
+        "project_name": "Electric Bus Fleet",
+        "sector": "Clean Transportation",
+        "location": "Munich, Germany",
+        "project_type": "Existing",
+        "amount_requested": 35000000,
+        "currency": "EUR",
+        "use_of_proceeds": "Procurement of 50 electric buses and installation of charging infrastructure. Retrofit of existing depot with fast-charging stations. Training programs for drivers and maintenance staff.",
+        "scope1_tco2": 0,
+        "scope2_tco2": 3500,
+        "scope3_tco2": 12000,
+        "baseline_year": 2022
+    },
+    {
+        "org_name": "AquaPure Solutions",
+        "project_name": "Wastewater Treatment Plant",
+        "sector": "Sustainable Water and Wastewater Management",
+        "location": "Chennai, India",
+        "project_type": "New",
+        "amount_requested": 28000000,
+        "currency": "USD",
+        "use_of_proceeds": "Construction of advanced wastewater treatment facility with 50 MLD capacity. Installation of membrane bioreactor technology for water recycling. Treated water will be supplied to industrial parks.",
+        "scope1_tco2": 8000,
+        "scope2_tco2": 12000,
+        "scope3_tco2": 5000,
+        "baseline_year": 2023
+    },
+    {
+        "org_name": "GreenBuild Corp",
+        "project_name": "Net Zero Office Complex",
+        "sector": "Green Buildings",
+        "location": "Singapore",
+        "project_type": "New",
+        "amount_requested": 120000000,
+        "currency": "USD",
+        "use_of_proceeds": "Construction of LEED Platinum certified office complex with 50,000 sqm of floor space. Features include rooftop solar, rainwater harvesting, smart building management system, and EV charging stations.",
+        "scope1_tco2": 0,
+        "scope2_tco2": 1500,
+        "scope3_tco2": 20000,
+        "baseline_year": 2023
+    }
+]

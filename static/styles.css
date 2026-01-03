@@ -1,0 +1,101 @@
+/* Global variable */
+:root {
+    --green: #367a23;
+    --main-bg: #f7ffed;
+    --sidebar-bg: #f8f8f8;
+    --white: #fff;
+}
+
+
+* {
+    font-family: 'Inter', sans-serif;
+}
+
+#main-app {
+    background: var(--main-bg);
+}
+
+/* Typography */
+h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--green);
+}
+
+/* buttons styling */
+.btn-prim {
+    background-color: var(--green);
+    color: white;
+    border: 1px solid #818380;
+    border-radius: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    transition: transform 0.2s ease-in-out, background-color 0.2s ease;
+}
+
+.btn-prim:hover {
+    transform: scale(0.95);
+}
+
+/* Sidebar Styling */
+#sidebar {
+    width: 230px;
+    /* Slightly wider to match previous 60/64 units approx */
+    height: calc(100vh - 10px);
+    padding: 8px;
+    border-radius: 12px;
+    margin: 5px;
+    background: linear-gradient(135deg,
+            rgba(255, 255, 255, 0.753) 0%,
+            rgba(220, 255, 223, 0.4) 50%,
+            rgba(255, 255, 255, 0.3) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(111, 155, 107, 0.555);
+    box-shadow: 0 20px 40px rgba(130, 170, 150, 0.15);
+    flex-shrink: 0;
+    /* Prevent shrinking */
+    position: sticky;
+    top: 5px;
+}
+
+/* custom main area styling */
+
+
+
+/* Animations */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.pulse-green {
+    animation: pulseGreen 2s infinite;
+}
+
+@keyframes pulseGreen {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(54, 122, 35, 0.4);
+    }
+
+    50% {
+        box-shadow: 0 0 0 10px rgba(54, 122, 35, 0);
+    }
+}
