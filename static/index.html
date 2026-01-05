@@ -7,7 +7,9 @@
     <title>GLC Platform | Adya</title>
     <meta name="description" content="Green Loan Principles compliance platform for sustainable financing">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico">
     <link href="/static/styles.css" rel="stylesheet">
 </head>
 
@@ -16,24 +18,34 @@
         <!-- Main Application (Dashboard) -->
         <div id="main-app" class="flex h-screen overflow-hidden">
             <!-- Sidebar -->
-            <aside id="sidebar">
-                <div class="p-5">
+            <aside id="sidebar" class="w-64 bg-white border-r border-gray-100 flex flex-col justify-between">
+                <div class="p-5 select-none">
                     <div class="flex items-center space-x-3 cursor-pointer ">
                         <img src="/static/img/glc-logo.png" alt="Logo" class="w-12 h-12 object-contain">
                         <div>
-                            <h2 class="font-bold text-[var(--green)]">GLC Platform</h2>
-                            <p id="user-role-display" class="text-xs text-gray-600">Borrower</p>
+                            <span class="font-bold text-[var(--green)]">GLC Platform</span>
+                            <p class="text-xs text-gray-500">Green Lending Cycle</p>
                         </div>
                     </div>
                 </div>
 
-                <nav id="nav-menu" class="p-2 space-y-2">
+                <nav id="nav-menu" class="p-2 space-y-2 flex-1 overflow-y-auto">
                     <!-- Dynamic menu items -->
                 </nav>
 
-                <div class="absolute bottom-0 left-0 right-0 p-2">
+                <div class="p-1">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div
+                            class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold">
+                            <span id="user-avatar">U</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-gray-800 leading-tight" id="user-name">Loading...</p>
+                            <p class="text-xs text-gray-500" id="user-role-display">Role</p>
+                        </div>
+                    </div>
                     <button onclick="logout()"
-                        class="w-full py-2 px-4 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all flex items-center space-x-2">
+                        class="w-full py-2 px-3 text-sm font-semibold text-gray-500 hover:text-red-500 transition-all flex space-x-2 items-center">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -45,17 +57,8 @@
 
             <!-- Main Content -->
             <main class="flex-1 min-h-screen overflow-y-auto">
-                <header class="px-8 py-4 flex items-center justify-between">
-                    <h1 id="page-title" class="text-2xl font-bold text-glc-green">Dashboard</h1>
-                    <div class="flex items-center space-x-4">
-                        <span id="user-name" class="text-gray-400"></span>
-                        <div class="w-10 h-10 bg-glc-zinc rounded-full flex items-center justify-center">
-                            <svg class="w-6 h-6 text-glc-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                        </div>
-                    </div>
+                <header class="px-8 py-5 sticky top-0 z-10">
+                    <h1 id="page-title">Dashboard</h1>
                 </header>
 
                 <div id="page-content" class="p-8">
@@ -63,9 +66,11 @@
                 </div>
             </main>
         </div>
+        <div id="modal-container"></div>
     </div>
 
-    <script src="/static/app.js"></script>
+    <!-- Load Main Module -->
+    <script type="module" src="/static/frontend/main.js"></script>
 </body>
 
 </html>

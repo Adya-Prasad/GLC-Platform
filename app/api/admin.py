@@ -167,3 +167,55 @@ async def get_all_audit_logs(
     
     logs = db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(limit).all()
     return logs
+
+
+# ==================== Docs & Learn Endpoints ====================
+
+@router.get("/docs/list")
+async def list_docs():
+    """List available documentation files."""
+    docs_dir = Path("docs")
+    if not docs_dir.exists():
+        return []
+    return [f.name for f in docs_dir.glob("*.md")]
+
+
+@router.get("/docs/content/{filename}")
+async def get_doc_content(filename: str):
+    """Get content of a documentation file."""
+    doc_path = Path("docs") / filename
+    if not doc_path.exists() or not filename.endswith(".md"):
+        raise HTTPException(status_code=404, detail="Document not found")
+    return {"content": doc_path.read_text(encoding="utf-8")}
+
+
+@router.get("/learn/list")
+async def list_learn_files():
+    """List available learning materials."""
+    learn_dir = Path("GLC-Learn")
+    if not learn_dir.exists():
+        return []
+    files = []
+    for f in learn_dir.glob("*"):
+        if f.is_file():
+            files.append({
+                "name": f.name,
+                "type": "pdf" if f.suffix.lower() == ".pdf" else "md" if f.suffix.lower() == ".md" else "file",
+                "size": f.stat().st_size
+            })
+    return files
+
+
+@router.get("/learn/content/{filename}")
+async def get_learn_content(filename: str):
+    """Get the file or content for learning."""
+    learn_path = Path("GLC-Learn") / filename
+    if not learn_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    if filename.endswith(".md"):
+        return {"content": learn_path.read_text(encoding="utf-8")}
+    elif filename.endswith(".pdf"):
+        return FileResponse(path=str(learn_path), media_type="application/pdf", filename=filename)
+    else:
+        return FileResponse(path=str(learn_path), filename=filename)

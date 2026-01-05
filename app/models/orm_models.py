@@ -23,7 +23,7 @@ class UserRole(enum.Enum):
 class ApplicationStatus(enum.Enum):
     """Loan application status enumeration."""
     DRAFT = "draft"
-    SUBMITTED = "submitted"
+    PENDING = "pending"
     UNDER_REVIEW = "under_review"
     NEEDS_INFO = "needs_info"
     APPROVED = "approved"
@@ -65,6 +65,9 @@ class Borrower(Base):
     org_name = Column(String(500), nullable=False)
     industry = Column(String(255))
     country = Column(String(100))
+    gst_number = Column(String(50))
+    credit_score = Column(String(50))
+    website = Column(String(255))
     contact_info = Column(JSON, default={})
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -106,10 +109,26 @@ class LoanApplication(Base):
     dnsh_status = Column(JSON)
     
     # Status tracking
-    status = Column(Enum(ApplicationStatus), default=ApplicationStatus.DRAFT)
+    status = Column(Enum(ApplicationStatus), default=ApplicationStatus.PENDING)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    # Contact & Personal
+    project_pin_code = Column(String(20))
+    contact_email = Column(String(255))
+    contact_phone = Column(String(50))
+    has_existing_loan = Column(Boolean, default=False)
+    
+    # Project & Env Details
+    reporting_frequency = Column(String(50))
+    installed_capacity = Column(String(50))
+    target_reduction = Column(String(50))
+    kpi_metrics = Column(JSON, default=[])
+
+    # Compliance & Consent
+    consent_agreed = Column(Boolean, default=False)
+    questionnaire_data = Column(JSON, default={})
+
     # Parsed fields from document analysis
     parsed_fields = Column(JSON, default={})
     
@@ -168,6 +187,7 @@ class Document(Base):
     filename = Column(String(500), nullable=False)
     filepath = Column(String(1000), nullable=False)
     file_type = Column(String(50))
+    doc_category = Column(String(50), default="general") # e.g. project_details, vendor_agreement, certification
     file_size = Column(Integer)
     text_extracted = Column(Text)
     extraction_status = Column(String(50), default="pending")

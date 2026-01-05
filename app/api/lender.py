@@ -223,7 +223,7 @@ async def get_portfolio_summary(
     total_financed = sum(a.amount_requested for a in applications if a.status == ApplicationStatus.APPROVED)
     total_co2 = sum((a.total_tco2 or 0) for a in applications if a.status == ApplicationStatus.APPROVED)
     green_projects = sum(1 for a in applications if a.glp_eligibility)
-    pending = sum(1 for a in applications if a.status in [ApplicationStatus.SUBMITTED, ApplicationStatus.UNDER_REVIEW])
+    pending = sum(1 for a in applications if a.status in [ApplicationStatus.PENDING, ApplicationStatus.UNDER_REVIEW])
     approved = sum(1 for a in applications if a.status == ApplicationStatus.APPROVED)
     rejected = sum(1 for a in applications if a.status == ApplicationStatus.REJECTED)
     flagged = sum(1 for a in applications if a.carbon_lockin_risk == "high")
@@ -237,7 +237,7 @@ async def get_portfolio_summary(
         sectors[a.sector] = sectors.get(a.sector, 0) + 1
     
     # Status breakdown
-    status_breakdown = {"submitted": 0, "under_review": 0, "approved": 0, "rejected": 0, "needs_info": 0}
+    status_breakdown = {"pending": 0, "under_review": 0, "approved": 0, "rejected": 0, "needs_info": 0}
     for a in applications:
         if a.status:
             status_breakdown[a.status.value] = status_breakdown.get(a.status.value, 0) + 1

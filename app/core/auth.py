@@ -8,8 +8,14 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from app.models.db import get_db
-from app.models.orm_models import User, UserRole
+
+
+
+
+def get_db_conn():
+    """Wrapper to break circular import with app.models.db."""
+    from app.models.db import get_db
+    yield from get_db()
 
 
 # Security scheme for swagger docs
@@ -21,15 +27,16 @@ def generate_token() -> str:
     return secrets.token_urlsafe(32)
 
 
-def get_user_by_token(db: Session, token: str) -> Optional[User]:
+def get_user_by_token(db: Session, token: str) -> Optional['User']:
     """Retrieve user by their authentication token."""
+    from app.models.orm_models import User
     return db.query(User).filter(User.token == token).first()
 
 
 def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-    db: Session = Depends(get_db)
-) -> Optional[User]:
+    db: Session = Depends(get_db_conn)
+) -> Optional['User']:
     """
     Get the current user from the authorization header.
     For prototype, returns None if no valid token (allows anonymous access).
@@ -44,8 +51,8 @@ def get_current_user(
 
 def require_auth(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db)
-) -> User:
+    db: Session = Depends(get_db_conn)
+) -> 'User':
     """
     Require authentication for an endpoint.
     Raises 401 if no valid token provided.
@@ -76,8 +83,9 @@ def require_auth(
     return user
 
 
-def require_borrower(user: User = Depends(require_auth)) -> User:
+def require_borrower(user: 'User' = Depends(require_auth)) -> 'User':
     """Require user to be a borrower."""
+    from app.models.orm_models import UserRole
     if user.role != UserRole.BORROWER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -86,8 +94,9 @@ def require_borrower(user: User = Depends(require_auth)) -> User:
     return user
 
 
-def require_lender(user: User = Depends(require_auth)) -> User:
+def require_lender(user: 'User' = Depends(require_auth)) -> 'User':
     """Require user to be a lender (admin)."""
+    from app.models.orm_models import UserRole
     if user.role != UserRole.LENDER:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -96,8 +105,9 @@ def require_lender(user: User = Depends(require_auth)) -> User:
     return user
 
 
-def require_reviewer(user: User = Depends(require_auth)) -> User:
+def require_reviewer(user: 'User' = Depends(require_auth)) -> 'User':
     """Require user to be a reviewer or lender."""
+    from app.models.orm_models import UserRole
     if user.role not in [UserRole.LENDER, UserRole.REVIEWER]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -113,8 +123,9 @@ class MockAuth:
     """
     
     @staticmethod
-    def create_or_get_user(db: Session, name: str, email: str, role: UserRole) -> User:
+    def create_or_get_user(db: Session, name: str, email: str, role: 'UserRole') -> 'User':
         """Create a new user or return existing one."""
+        from app.models.orm_models import User
         user = db.query(User).filter(User.email == email).first()
         
         if user:
@@ -139,10 +150,11 @@ class MockAuth:
         return user
     
     @staticmethod
-    def quick_login(db: Session, role: str) -> User:
+    def quick_login(db: Session, role: str) -> 'User':
         """
         Quick login for demo - creates a demo user for the role.
         """
+        from app.models.orm_models import UserRole
         role_enum = UserRole(role.lower())
         
         demo_users = {

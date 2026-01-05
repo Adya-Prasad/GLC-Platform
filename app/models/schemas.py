@@ -19,7 +19,7 @@ class UserRoleEnum(str, Enum):
 
 class ApplicationStatusEnum(str, Enum):
     DRAFT = "draft"
-    SUBMITTED = "submitted"
+    PENDING = "pending"
     UNDER_REVIEW = "under_review"
     NEEDS_INFO = "needs_info"
     APPROVED = "approved"
@@ -99,6 +99,25 @@ class LoanApplicationCreate(BaseModel):
     scope3_tco2: Optional[float] = Field(None, ge=0, description="Scope 3 emissions in tCO2")
     baseline_year: Optional[int] = Field(None, description="Baseline year for emissions")
     additional_info: Optional[str] = Field(None, description="Additional project information")
+    
+    # New Fields
+    org_gst: Optional[str] = Field(None, description="GST Number")
+    credit_score: Optional[str] = Field(None, description="Credit Score")
+    website: Optional[str] = Field(None, description="Website URL")
+    
+    project_pin_code: Optional[str] = Field(None, description="Project Postal/Zip Code")
+    contact_email: Optional[EmailStr] = Field(None, description="Contact email")
+    contact_phone: Optional[str] = Field(None, description="Contact phone number")
+    
+    has_existing_loan: bool = Field(default=False, description="Does borrower have existing loans?")
+    reporting_frequency: Optional[str] = Field(None, description="Annual, Half-yearly, Quarterly")
+    
+    installed_capacity: Optional[str] = Field(None, description="MW capacity")
+    target_reduction: Optional[str] = Field(None, description="% reduction")
+    kpi_metrics: List[str] = Field(default=[], description="Selected KPIs")
+    
+    consent_agreed: bool = Field(default=False, description="User agreed to terms")
+    questionnaire_data: Dict[str, Any] = Field(default={}, description="GLP Questionnaire answers")
 
 
 class LoanApplicationResponse(BaseModel):
@@ -115,7 +134,21 @@ class LoanApplicationResponse(BaseModel):
     scope2_tco2: Optional[float]
     scope3_tco2: Optional[float]
     total_tco2: Optional[float]
+    total_tco2: Optional[float]
     baseline_year: Optional[int]
+    
+    project_pin_code: Optional[str]
+    contact_email: Optional[str]
+    contact_phone: Optional[str]
+    has_existing_loan: Optional[bool]
+    
+    reporting_frequency: Optional[str]
+    installed_capacity: Optional[str]
+    target_reduction: Optional[str]
+    kpi_metrics: Optional[List[str]]
+    
+    questionnaire_data: Optional[Dict[str, Any]]
+    
     esg_score: Optional[float]
     glp_eligibility: Optional[bool]
     glp_category: Optional[str]
@@ -160,6 +193,7 @@ class DocumentResponse(BaseModel):
     loan_app_id: int
     filename: str
     file_type: Optional[str]
+    doc_category: Optional[str]
     file_size: Optional[int]
     extraction_status: str
     text_extracted: Optional[str]

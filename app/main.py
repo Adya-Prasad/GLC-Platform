@@ -73,9 +73,15 @@ async def root():
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page():
-    """Serve the login/signup page."""
-    signup_path = Path(__file__).parent.parent / "static" / "signup.html"
-    return FileResponse(signup_path)
+    """Serve the login page."""
+    login_path = Path(__file__).parent.parent / "static" / "signup.html"
+    return FileResponse(login_path)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Serve favicon.ico."""
+    return FileResponse(Path(__file__).parent.parent / "static" / "img" / "favicon.ico")
 
 
 @app.get("/health")
