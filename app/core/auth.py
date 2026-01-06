@@ -1,15 +1,11 @@
 """
 Authentication Module
-Mock authentication for prototype - provides token generation and validation.
+Simplified authentication for hackathon - name + 6-digit passcode.
 """
 
-import secrets
-from typing import Optional
-from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Optional, Tuple
+from fastapi import Depends
 from sqlalchemy.orm import Session
-
-
 
 
 def get_db_conn():
@@ -18,131 +14,80 @@ def get_db_conn():
     yield from get_db()
 
 
-# Security scheme for swagger docs
-security = HTTPBearer(auto_error=False)
-
-
-def generate_token() -> str:
-    """Generate a secure random token."""
-    return secrets.token_urlsafe(32)
-
-
-def get_user_by_token(db: Session, token: str) -> Optional['User']:
-    """Retrieve user by their authentication token."""
-    from app.models.orm_models import User
-    return db.query(User).filter(User.token == token).first()
-
-
-def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-    db: Session = Depends(get_db_conn)
-) -> Optional['User']:
+def get_current_user(db: Session = Depends(get_db_conn)) -> Optional['User']:
     """
-    Get the current user from the authorization header.
-    For prototype, returns None if no valid token (allows anonymous access).
+    Get the current user - for hackathon, returns None (anonymous access allowed).
+    Real auth would check session/JWT here.
     """
-    if not credentials:
-        return None
-    
-    token = credentials.credentials
-    user = get_user_by_token(db, token)
-    return user
-
-
-def require_auth(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db_conn)
-) -> 'User':
-    """
-    Require authentication for an endpoint.
-    Raises 401 if no valid token provided.
-    """
-    if not credentials:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    token = credentials.credentials
-    user = get_user_by_token(db, token)
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is deactivated"
-        )
-    
-    return user
-
-
-def require_borrower(user: 'User' = Depends(require_auth)) -> 'User':
-    """Require user to be a borrower."""
-    from app.models.orm_models import UserRole
-    if user.role != UserRole.BORROWER:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="This endpoint requires borrower access"
-        )
-    return user
-
-
-def require_lender(user: 'User' = Depends(require_auth)) -> 'User':
-    """Require user to be a lender (admin)."""
-    from app.models.orm_models import UserRole
-    if user.role != UserRole.LENDER:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="This endpoint requires lender access"
-        )
-    return user
-
-
-def require_reviewer(user: 'User' = Depends(require_auth)) -> 'User':
-    """Require user to be a reviewer or lender."""
-    from app.models.orm_models import UserRole
-    if user.role not in [UserRole.LENDER, UserRole.REVIEWER]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="This endpoint requires reviewer access"
-        )
-    return user
+    return None
 
 
 class MockAuth:
     """
-    Mock authentication for rapid prototyping.
-    Creates users on-the-fly for demo purposes.
+    Simplified authentication for hackathon.
+    Users login with name + 6-digit passcode.
     """
     
     @staticmethod
-    def create_or_get_user(db: Session, name: str, email: str, role: 'UserRole') -> 'User':
-        """Create a new user or return existing one."""
+    def login_user(db: Session, name: str, passcode: str, role: 'UserRole') -> Tuple[Optional['User'], str]:
+        """
+        Login or register a user with passcode verification.
+        
+        Returns:
+            Tuple of (User, status) where status is one of:
+            - "new_user": User was created
+            - "existing_user": User found and passcode matched
+            - "passcode_mismatch": User found but passcode didn't match
+        """
         from app.models.orm_models import User
-        user = db.query(User).filter(User.email == email).first()
+        
+        # Look up existing user by name and role
+        user = db.query(User).filter(User.name == name, User.role == role).first()
         
         if user:
-            # Update token if needed
-            if not user.token:
-                user.token = generate_token()
-                db.commit()
+            # Check passcode
+            if user.passcode == passcode:
+                return user, "existing_user"
+            else:
+                return None, "passcode_mismatch"
+        
+        # Create new user
+        user = User(name=name, role=role, passcode=passcode)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
+        return user, "new_user"
+    
+    @staticmethod
+    def quick_login(db: Session, role: str, name: str = None, passcode: str = None) -> 'User':
+        """
+        Quick login for API endpoints - returns user object only.
+        Creates demo user if name/passcode not provided.
+        """
+        from app.models.orm_models import UserRole, User
+        role_enum = UserRole(role.lower())
+        
+        # Use provided name or default demo names
+        if not name:
+            demo_users = {
+                UserRole.BORROWER: ("Demo Borrower", "000000"),
+                UserRole.LENDER: ("Demo Lender", "000000"),
+                UserRole.REVIEWER: ("External Reviewer", "000000"),
+            }
+            name, passcode = demo_users.get(role_enum, (f"Demo {role}", "000000"))
+        
+        if not passcode:
+            passcode = "000000"
+        
+        # Try to find existing user
+        user = db.query(User).filter(User.name == name, User.role == role_enum).first()
+        
+        if user:
             return user
         
         # Create new user
-        user = User(
-            name=name,
-            email=email,
-            role=role,
-            token=generate_token(),
-            is_active=True
-        )
+        user = User(name=name, role=role_enum, passcode=passcode)
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -150,21 +95,14 @@ class MockAuth:
         return user
     
     @staticmethod
-    def quick_login(db: Session, role: str) -> 'User':
+    def login_with_passcode(db: Session, role: str, name: str, passcode: str) -> Tuple[Optional['User'], str]:
         """
-        Quick login for demo - creates a demo user for the role.
+        Login with passcode verification - for the login endpoint.
+        Returns tuple of (user, status).
         """
         from app.models.orm_models import UserRole
         role_enum = UserRole(role.lower())
-        
-        demo_users = {
-            UserRole.BORROWER: ("Demo Borrower", "borrower@demo.glc"),
-            UserRole.LENDER: ("Demo Lender", "lender@demo.glc"),
-            UserRole.REVIEWER: ("External Reviewer", "reviewer@demo.glc"),
-        }
-        
-        name, email = demo_users.get(role_enum, ("Demo User", f"{role}@demo.glc"))
-        return MockAuth.create_or_get_user(db, name, email, role_enum)
+        return MockAuth.login_user(db, name, passcode, role_enum)
 
 
 def log_audit_action(

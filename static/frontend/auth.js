@@ -1,17 +1,33 @@
 import { API_BASE } from './utils.js';
 
-export async function login(role) {
+export async function login(role, name, passcode) {
     try {
-        const res = await fetch(`${API_BASE}/auth/login?role=${role}`);
-        const user = await res.json();
-        localStorage.setItem('glc_user', JSON.stringify(user));
-        window.location.href = '/';
+        const res = await fetch(`${API_BASE}/auth/login?role=${role}&name=${encodeURIComponent(name)}&passcode=${passcode}`);
+        const data = await res.json();
+
+        // Check for errors
+        if (data.error || data.status === 'passcode_mismatch' || data.status === 'error') {
+            return {
+                success: false,
+                status: data.status,
+                error: data.error
+            };
+        }
+
+        // Success - save user data
+        localStorage.setItem('glc_user', JSON.stringify(data));
+        return {
+            success: true,
+            status: data.status,
+            name: data.name
+        };
     } catch (e) {
         console.error("Login failed", e);
-        // Fallback for demo if API fails
-        const user = { name: `Demo ${role}`, role, token: 'demo' };
-        localStorage.setItem('glc_user', JSON.stringify(user));
-        window.location.href = '/';
+        return {
+            success: false,
+            status: 'error',
+            error: 'Network error - please try again'
+        };
     }
 }
 

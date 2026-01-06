@@ -27,7 +27,7 @@ export async function renderBorrowerDashboard() {
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             ${statsData.map(s => `
                 <div class="bg-white rounded-2xl p-6 shadow-sm card-hover">
-                    <p class="text-gray-400 text-sm">${s.label}</p>
+                    <p class="text-gray-500 text-sm">${s.label}</p>
                     <p class="text-3xl font-bold text-[var(--green)] mt-2">${s.value}</p>
                 </div>
             `).join('')}
@@ -44,7 +44,7 @@ export async function renderBorrowerDashboard() {
                 <div class="overflow-x-auto">
                     <table class="w-full">
                         <thead>
-                            <tr class="text-left text-gray-400 text-sm border-b">
+                            <tr class="text-left text-gray-500 text-sm border-b">
                                 <th class="pb-4">Project</th>
                                 <th class="pb-4">Sector</th>
                                 <th class="pb-4">Amount</th>
@@ -69,7 +69,7 @@ export async function renderBorrowerDashboard() {
                         </tbody>
                     </table>
                 </div>
-            ` : '<p class="text-gray-400 text-center py-8">No applications yet. Click "New Application" to get started.</p>'}
+            ` : '<p class="text-gray-500 text-center py-8">No applications yet. Click "New Application" to get started.</p>'}
         </div>
     `;
 }
@@ -80,27 +80,27 @@ export async function renderLenderDashboard() {
     return `
         <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             <div class="bg-white rounded-2xl p-5 shadow-sm">
-                <p class="text-gray-400 text-xs">Total Apps</p>
+                <p class="text-gray-500 text-xs">Total Apps</p>
                 <p class="text-2xl font-bold text-[var(--green)]">${portfolio.total_applications}</p>
             </div>
             <div class="bg-white rounded-2xl p-5 shadow-sm">
-                <p class="text-gray-400 text-xs">Approved</p>
+                <p class="text-gray-500 text-xs">Approved</p>
                 <p class="text-2xl font-bold text-green-600">${portfolio.num_approved}</p>
             </div>
             <div class="bg-white rounded-2xl p-5 shadow-sm">
-                <p class="text-gray-400 text-xs">Pending</p>
+                <p class="text-gray-500 text-xs">Pending</p>
                 <p class="text-2xl font-bold text-yellow-600">${portfolio.num_pending}</p>
             </div>
             <div class="bg-white rounded-2xl p-5 shadow-sm">
-                <p class="text-gray-400 text-xs">Avg ESG</p>
+                <p class="text-gray-500 text-xs">Avg ESG</p>
                 <p class="text-2xl font-bold text-purple-600">${portfolio.avg_esg_score}</p>
             </div>
             <div class="bg-white rounded-2xl p-5 shadow-sm">
-                <p class="text-gray-400 text-xs">Financed CO₂</p>
+                <p class="text-gray-500 text-xs">Financed CO₂</p>
                 <p class="text-2xl font-bold text-orange-600">${(portfolio.total_financed_co2 / 1000).toFixed(0)}k</p>
             </div>
             <div class="bg-white rounded-2xl p-5 shadow-sm">
-                <p class="text-gray-400 text-xs">Green %</p>
+                <p class="text-gray-500 text-xs">Green %</p>
                 <p class="text-2xl font-bold text-[var(--green)]">${portfolio.percent_eligible_green?.toFixed(0) || 0}%</p>
             </div>
         </div>
@@ -125,7 +125,7 @@ export async function renderLenderDashboard() {
                             <span class="text-sm">${k}</span>
                             <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">${v}</span>
                         </div>
-                    `).join('') || '<p class="text-gray-400">No data</p>'}
+                    `).join('') || '<p class="text-gray-500">No data</p>'}
                 </div>
             </div>
         </div>

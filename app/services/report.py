@@ -20,13 +20,13 @@ logger = logging.getLogger(__name__)
 class ReportService:
     """Generate compliance and investor reports."""
     
-    def generate_report(self, db: Session, loan_app_id: int, format: str = "json") -> Dict[str, Any]:
+    def generate_report(self, db: Session, loan_id: int, format: str = "json") -> Dict[str, Any]:
         """Generate GLP investor report."""
         
         # Get loan application with related data
-        loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_app_id).first()
+        loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_id).first()
         if not loan_app:
-            raise ValueError(f"Loan application {loan_app_id} not found")
+            raise ValueError(f"Loan application {loan_id} not found")
         
         borrower = loan_app.borrower
         documents = loan_app.documents
@@ -34,7 +34,7 @@ class ReportService:
         verifications = loan_app.verifications
         
         # Build report data
-        report_id = f"GLP-{loan_app_id}-{uuid.uuid4().hex[:8].upper()}"
+        report_id = f"GLP-{loan_id}-{uuid.uuid4().hex[:8].upper()}"
         
         report_data = {
             "report_id": report_id,

@@ -27,7 +27,7 @@ export async function renderReports() {
             </div>
              <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                  <h3 class="text-gray-500 text-sm mb-1">Carbon Avoided</h3>
-                <p class="text-3xl font-bold text-gray-900">45.2k <span class="text-base font-normal text-gray-400">tCO2e</span></p>
+                <p class="text-3xl font-bold text-gray-900">45.2k <span class="text-base font-normal text-gray-500">tCO2e</span></p>
                  <div class="mt-4 text-sm text-green-600 flex items-center">
                     On track for 2024 targets
                 </div>
@@ -57,8 +57,8 @@ export async function renderReports() {
                                 ${r.status}
                             </span>
                              ${r.status === 'Available' ? `
-                                <button class="p-2 text-gray-400 hover:text-green-600 transition-colors">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                <button class="p-2 text-gray-500 hover:text-green-600 transition-colors">
+                                    <svg class="w-5 h-5" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="m3.25 13.25h9m-8.5-6.5 4 3.5 4-3.5m-4-5v8.5"/></svg>
                                 </button>
                              ` : ''}
                         </div>

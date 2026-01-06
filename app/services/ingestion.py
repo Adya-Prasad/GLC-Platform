@@ -24,28 +24,28 @@ logger = logging.getLogger(__name__)
 class IngestionService:
     """Handles document ingestion pipeline."""
     
-    def run_ingestion(self, db: Session, loan_app_id: int) -> Dict[str, Any]:
+    def run_ingestion(self, db: Session, loan_id: int) -> Dict[str, Any]:
         """Run full ingestion pipeline for a loan application."""
         start_time = time.time()
         
         # Create ingestion job
-        job = IngestionJob(loan_app_id=loan_app_id, status="running", started_at=datetime.utcnow())
+        job = IngestionJob(loan_id=loan_id, status="running", started_at=datetime.utcnow())
         db.add(job)
         db.commit()
         
         try:
             # Get loan application
-            loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_app_id).first()
+            loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_id).first()
             if not loan_app:
-                raise ValueError(f"Loan application {loan_app_id} not found")
+                raise ValueError(f"Loan application {loan_id} not found")
             
             # Get documents
-            documents = db.query(Document).filter(Document.loan_app_id == loan_app_id).all()
+            documents = db.query(Document).filter(Document.loan_id == loan_id).all()
             
             # Process each document
             total_chunks = 0
             combined_text = ""
-            index = get_index(loan_app_id)
+            index = get_index(loan_id)
             index.clear()  # Clear existing index
             
             for doc in documents:
@@ -96,7 +96,7 @@ class IngestionService:
             db.commit()
             
             # Run extraction questions
-            extracted_fields = rag_service.run_extraction_questions(loan_app_id)
+            extracted_fields = rag_service.run_extraction_questions(loan_id)
             
             # Get project data
             project_data = {
@@ -149,7 +149,7 @@ class IngestionService:
             
             # Create verification record
             verification = Verification(
-                loan_app_id=loan_app_id,
+                loan_id=loan_id,
                 verification_type="automated_analysis",
                 verifier_role="system",
                 claim="Automated document analysis",
@@ -176,13 +176,13 @@ class IngestionService:
             db.commit()
             
             # Log audit
-            log_audit_action(db, "LoanApplication", loan_app_id, "ingestion_completed", data=job.summary)
+            log_audit_action(db, "LoanApplication", loan_id, "ingestion_completed", data=job.summary)
             
             processing_time = time.time() - start_time
             
             return {
                 'job_id': job.id,
-                'loan_app_id': loan_app_id,
+                'loan_id': loan_id,
                 'status': 'completed',
                 'documents_processed': len(documents),
                 'chunks_created': total_chunks,

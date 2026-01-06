@@ -18,7 +18,6 @@ class UserRoleEnum(str, Enum):
 
 
 class ApplicationStatusEnum(str, Enum):
-    DRAFT = "draft"
     PENDING = "pending"
     UNDER_REVIEW = "under_review"
     NEEDS_INFO = "needs_info"
@@ -37,7 +36,6 @@ class VerificationResultEnum(str, Enum):
 
 class UserBase(BaseModel):
     name: str = Field(..., min_length=2, max_length=255)
-    email: EmailStr
     role: UserRoleEnum
 
 
@@ -47,16 +45,13 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     id: int
-    token: Optional[str] = None
-    created_at: datetime
-    is_active: bool
     
     class Config:
         from_attributes = True
 
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    name: str
     role: UserRoleEnum
 
 
@@ -86,54 +81,63 @@ class BorrowerResponse(BorrowerBase):
 
 class LoanApplicationCreate(BaseModel):
     """Request body for creating a new loan application."""
+    # Organization Details
     org_name: str = Field(..., description="Organization name")
-    project_name: str = Field(..., description="Project name")
-    sector: str = Field(..., description="Project sector (e.g., Renewable Energy)")
-    location: str = Field(..., description="Project location")
-    project_type: str = Field(default="New", description="New or Existing project")
+    contact_email: Optional[str] = Field(None, description="Contact email")
+    contact_phone: Optional[str] = Field(None, description="Contact phone number")
+    org_gst: Optional[str] = Field(None, description="GST / Tax ID")
+    credit_score: Optional[str] = Field(None, description="Credit Score")
+    location: Optional[str] = Field(None, description="Headquarters location")
+    website: Optional[str] = Field(None, description="Website URL")
+    
+    # Project Information
+    project_name: str = Field(..., description="Project title")
+    sector: str = Field(..., description="Project sector")
+    project_location: Optional[str] = Field(None, description="Project site location")
+    project_pin_code: Optional[str] = Field(None, description="Project Postal/Zip Code")
+    project_type: str = Field(default="New Project", description="New or Existing project")
+    reporting_frequency: Optional[str] = Field(None, description="Annual, Half-yearly, Quarterly")
+    has_existing_loan: bool = Field(default=False, description="Does borrower have existing loans?")
+    planned_start_date: Optional[str] = Field(None, description="Planned project start date (YYYY-MM-DD)")
     amount_requested: float = Field(..., gt=0, description="Loan amount requested")
     currency: str = Field(default="USD", description="Currency code")
+    project_description: Optional[str] = Field(None, description="Detailed project description")
+    
+    # Green KPIs
     use_of_proceeds: str = Field(..., description="Description of how funds will be used")
     scope1_tco2: Optional[float] = Field(None, ge=0, description="Scope 1 emissions in tCO2")
     scope2_tco2: Optional[float] = Field(None, ge=0, description="Scope 2 emissions in tCO2")
     scope3_tco2: Optional[float] = Field(None, ge=0, description="Scope 3 emissions in tCO2")
-    baseline_year: Optional[int] = Field(None, description="Baseline year for emissions")
-    additional_info: Optional[str] = Field(None, description="Additional project information")
-    
-    # New Fields
-    org_gst: Optional[str] = Field(None, description="GST Number")
-    credit_score: Optional[str] = Field(None, description="Credit Score")
-    website: Optional[str] = Field(None, description="Website URL")
-    
-    project_pin_code: Optional[str] = Field(None, description="Project Postal/Zip Code")
-    contact_email: Optional[EmailStr] = Field(None, description="Contact email")
-    contact_phone: Optional[str] = Field(None, description="Contact phone number")
-    
-    has_existing_loan: bool = Field(default=False, description="Does borrower have existing loans?")
-    reporting_frequency: Optional[str] = Field(None, description="Annual, Half-yearly, Quarterly")
-    
     installed_capacity: Optional[str] = Field(None, description="MW capacity")
     target_reduction: Optional[str] = Field(None, description="% reduction")
+    baseline_year: Optional[int] = Field(None, description="Baseline year for emissions")
     kpi_metrics: List[str] = Field(default=[], description="Selected KPIs")
     
-    consent_agreed: bool = Field(default=False, description="User agreed to terms")
+    # ESG Questionnaire & Consent
     questionnaire_data: Dict[str, Any] = Field(default={}, description="GLP Questionnaire answers")
+    consent_agreed: bool = Field(default=False, description="User agreed to terms")
+    
+    # Additional
+    additional_info: Optional[str] = Field(None, description="Additional project information")
+    cloud_doc_url: Optional[str] = Field(None, description="Cloud document URL")
 
 
 class LoanApplicationResponse(BaseModel):
     id: int
+    loan_id: str  # LOAN_1, LOAN_2, etc.
     borrower_id: int
     project_name: str
     sector: str
     location: Optional[str]
+    project_location: Optional[str]
     project_type: Optional[str]
+    project_description: Optional[str]
     amount_requested: float
     currency: str
     use_of_proceeds: Optional[str]
     scope1_tco2: Optional[float]
     scope2_tco2: Optional[float]
     scope3_tco2: Optional[float]
-    total_tco2: Optional[float]
     total_tco2: Optional[float]
     baseline_year: Optional[int]
     
@@ -142,12 +146,16 @@ class LoanApplicationResponse(BaseModel):
     contact_phone: Optional[str]
     has_existing_loan: Optional[bool]
     
+    planned_start_date: Optional[str]
+    org_name: Optional[str] = None
+    
     reporting_frequency: Optional[str]
     installed_capacity: Optional[str]
     target_reduction: Optional[str]
     kpi_metrics: Optional[List[str]]
     
     questionnaire_data: Optional[Dict[str, Any]]
+    cloud_doc_url: Optional[str]
     
     esg_score: Optional[float]
     glp_eligibility: Optional[bool]
@@ -164,6 +172,7 @@ class LoanApplicationResponse(BaseModel):
 class LoanApplicationListItem(BaseModel):
     """Summary item for application list views."""
     id: int
+    loan_id: str  # LOAN_1, LOAN_2, etc.
     project_name: str
     borrower_name: str
     org_name: str
@@ -173,6 +182,7 @@ class LoanApplicationListItem(BaseModel):
     status: ApplicationStatusEnum
     esg_score: Optional[float]
     glp_eligibility: Optional[bool]
+    planned_start_date: Optional[str]
     created_at: datetime
     
     class Config:
@@ -182,6 +192,7 @@ class LoanApplicationListItem(BaseModel):
 class ApplicationCreateResponse(BaseModel):
     """Response for loan application creation."""
     id: int
+    loan_id: str  # LOAN_1, LOAN_2, etc.
     status: str
     message: str
 
@@ -190,7 +201,7 @@ class ApplicationCreateResponse(BaseModel):
 
 class DocumentResponse(BaseModel):
     id: int
-    loan_app_id: int
+    loan_id: int
     filename: str
     file_type: Optional[str]
     doc_category: Optional[str]
@@ -224,13 +235,13 @@ class KPIBase(BaseModel):
 
 
 class KPICreate(KPIBase):
-    loan_app_id: int
+    loan_id: int
     project_id: Optional[int] = None
 
 
 class KPIResponse(KPIBase):
     id: int
-    loan_app_id: int
+    loan_id: int
     ambition_score: Optional[float]
     is_ambitious: Optional[bool]
     
@@ -248,7 +259,7 @@ class VerificationCreate(BaseModel):
 
 class VerificationResponse(BaseModel):
     id: int
-    loan_app_id: int
+    loan_id: int
     verifier_role: Optional[str]
     verification_type: Optional[str]
     claim: Optional[str]
@@ -345,7 +356,7 @@ class GlpReportData(BaseModel):
 
 class IngestionJobResponse(BaseModel):
     job_id: int
-    loan_app_id: int
+    loan_id: int
     status: str
     message: str
 
@@ -353,7 +364,7 @@ class IngestionJobResponse(BaseModel):
 class IngestionSummary(BaseModel):
     """Summary of ingestion results."""
     job_id: int
-    loan_app_id: int
+    loan_id: int
     status: str
     documents_processed: int
     chunks_created: int
@@ -386,7 +397,7 @@ class ExternalReviewRequest(BaseModel):
 
 
 class ExternalReviewResponse(BaseModel):
-    loan_app_id: int
+    loan_id: int
     package_url: str
     generated_at: datetime
     contents: List[str]

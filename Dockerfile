@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Create directories
-RUN mkdir -p uploads faiss_indexes reports
+RUN mkdir -p loan_docs faiss_indexes reports
 
 # Expose port
 EXPOSE 8000

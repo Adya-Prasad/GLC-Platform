@@ -23,9 +23,9 @@ from app.services.report import report_service
 router = APIRouter(tags=["Admin"])
 
 
-@router.post("/ingest/run/{loan_app_id}", response_model=IngestionSummary)
+@router.post("/ingest/run/{loan_id}", response_model=IngestionSummary)
 async def run_ingestion(
-    loan_app_id: int,
+    loan_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -34,15 +34,15 @@ async def run_ingestion(
     if not current_user:
         current_user = MockAuth.quick_login(db, "lender")
     
-    loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_app_id).first()
+    loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_id).first()
     if not loan_app:
         raise HTTPException(status_code=404, detail="Loan application not found")
     
     try:
-        result = ingestion_service.run_ingestion(db, loan_app_id)
+        result = ingestion_service.run_ingestion(db, loan_id)
         return IngestionSummary(
             job_id=result['job_id'],
-            loan_app_id=loan_app_id,
+            loan_id=loan_id,
             status=result['status'],
             documents_processed=result['documents_processed'],
             chunks_created=result['chunks_created'],
@@ -55,9 +55,9 @@ async def run_ingestion(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/report/application/{loan_app_id}")
+@router.get("/report/application/{loan_id}")
 async def get_report(
-    loan_app_id: int,
+    loan_id: int,
     format: str = Query("json", description="Output format: json or pdf"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -68,7 +68,7 @@ async def get_report(
         current_user = MockAuth.quick_login(db, "lender")
     
     try:
-        report_data = report_service.generate_report(db, loan_app_id, format)
+        report_data = report_service.generate_report(db, loan_id, format)
         
         if format == "pdf" and "pdf_url" in report_data:
             pdf_path = Path(report_data["pdf_url"])
@@ -84,9 +84,9 @@ async def get_report(
         raise HTTPException(status_code=404, detail=str(e))
 
 
-@router.post("/external_review/{loan_app_id}/request")
+@router.post("/external_review/{loan_id}/request")
 async def request_external_review(
-    loan_app_id: int,
+    loan_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -95,18 +95,18 @@ async def request_external_review(
     if not current_user:
         current_user = MockAuth.quick_login(db, "lender")
     
-    loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_app_id).first()
+    loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_id).first()
     if not loan_app:
         raise HTTPException(status_code=404, detail="Loan application not found")
     
     # Generate report
-    report_data = report_service.generate_report(db, loan_app_id, "json")
+    report_data = report_service.generate_report(db, loan_id, "json")
     
     # Create ZIP package
     package_dir = settings.REPORTS_DIR / "packages"
     package_dir.mkdir(parents=True, exist_ok=True)
     
-    zip_filename = f"external_review_{loan_app_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.zip"
+    zip_filename = f"external_review_{loan_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.zip"
     zip_path = package_dir / zip_filename
     
     with zipfile.ZipFile(zip_path, 'w') as zipf:
@@ -114,7 +114,7 @@ async def request_external_review(
         zipf.writestr("report.json", json.dumps(report_data, indent=2, default=str))
         
         # Add documents
-        documents = db.query(Document).filter(Document.loan_app_id == loan_app_id).all()
+        documents = db.query(Document).filter(Document.loan_id == loan_id).all()
         for doc in documents:
             if Path(doc.filepath).exists():
                 zipf.write(doc.filepath, f"documents/{doc.filename}")
@@ -122,22 +122,22 @@ async def request_external_review(
         # Add audit logs
         logs = db.query(AuditLog).filter(
             AuditLog.entity_type == "LoanApplication",
-            AuditLog.entity_id == loan_app_id
+            AuditLog.entity_id == loan_id
         ).all()
         log_data = [{"action": l.action, "timestamp": l.timestamp.isoformat(), "data": l.data} for l in logs]
         zipf.writestr("audit_log.json", json.dumps(log_data, indent=2))
     
     return {
-        "loan_app_id": loan_app_id,
+        "loan_id": loan_id,
         "package_url": f"/downloads/{zip_filename}",
         "generated_at": datetime.utcnow().isoformat(),
         "contents": ["report.json", f"{len(documents)} documents", "audit_log.json"]
     }
 
 
-@router.get("/audit/{loan_app_id}", response_model=List[AuditLogResponse])
+@router.get("/audit/{loan_id}", response_model=List[AuditLogResponse])
 async def get_audit_logs(
-    loan_app_id: int,
+    loan_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -148,7 +148,7 @@ async def get_audit_logs(
     
     logs = db.query(AuditLog).filter(
         AuditLog.entity_type == "LoanApplication",
-        AuditLog.entity_id == loan_app_id
+        AuditLog.entity_id == loan_id
     ).order_by(AuditLog.timestamp.desc()).all()
     
     return logs
@@ -174,7 +174,7 @@ async def get_all_audit_logs(
 @router.get("/docs/list")
 async def list_docs():
     """List available documentation files."""
-    docs_dir = Path("docs")
+    docs_dir = Path("user-docs")
     if not docs_dir.exists():
         return []
     return [f.name for f in docs_dir.glob("*.md")]
@@ -183,7 +183,7 @@ async def list_docs():
 @router.get("/docs/content/{filename}")
 async def get_doc_content(filename: str):
     """Get content of a documentation file."""
-    doc_path = Path("docs") / filename
+    doc_path = Path("user-docs") / filename
     if not doc_path.exists() or not filename.endswith(".md"):
         raise HTTPException(status_code=404, detail="Document not found")
     return {"content": doc_path.read_text(encoding="utf-8")}
@@ -192,7 +192,7 @@ async def get_doc_content(filename: str):
 @router.get("/learn/list")
 async def list_learn_files():
     """List available learning materials."""
-    learn_dir = Path("GLC-Learn")
+    learn_dir = Path("user-learn")
     if not learn_dir.exists():
         return []
     files = []
@@ -209,7 +209,7 @@ async def list_learn_files():
 @router.get("/learn/content/{filename}")
 async def get_learn_content(filename: str):
     """Get the file or content for learning."""
-    learn_path = Path("GLC-Learn") / filename
+    learn_path = Path("user-learn") / filename
     if not learn_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
     

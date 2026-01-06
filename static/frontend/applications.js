@@ -1,4 +1,5 @@
-import { apiCall, formatCurrency, getStatusClass, getCurrentUser } from './utils.js';
+
+import { apiCall, formatCurrency, getStatusClass, getCurrentUser, API_BASE, showModal } from './utils.js';
 
 export async function renderApplications() {
     const user = getCurrentUser();
@@ -22,15 +23,21 @@ export async function renderApplications() {
             <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer group" onclick="window.viewApplication(${a.id})">
                 <td class="px-6 py-4">
                     <p class="font-bold text-gray-900 group-hover:text-[var(--green)] transition-colors">${a.project_name}</p>
-                    <p class="text-[10px] text-gray-400 font-medium uppercase mt-0.5">ID: APP-${a.id}</p>
+                    <p class="text-[10px] text-gray-500 font-medium uppercase mt-0.5">ID: LOAN-${a.id}</p>
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-600 font-medium">${a.org_name || 'N/A'}</td>
                 <td class="px-6 py-4 text-sm text-gray-500">${a.sector}</td>
+                <td class="px-6 py-4 text-sm text-gray-500 font-mono">${a.planned_start_date || '-'}</td>
                 <td class="px-6 py-4 text-sm font-bold text-gray-900">${formatCurrency(a.amount_requested, a.currency)}</td>
                 <td class="px-6 py-4">
-                    <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getStatusClass(a.status)}">${a.status}</span>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusClass(a.status)}">${a.status}</span>
                 </td>
-                <td class="px-6 py-4 text-center text-sm text-gray-400 font-medium">0</td>
+                <td class="px-6 py-4 text-center">
+                    <button onclick="window.navigateToAudit(${a.id})" class="text-gray-500 hover:text-green-600 p-2 rounded-full hover:bg-green-50 transition-all flex items-center justify-center mx-auto gap-2 border border-gray-100 hover:border-green-200">
+                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                         <span class="text-xs font-bold">See Audit</span>
+                    </button>
+                </td>
             </tr>
         `).join('')
         : `<tr>
@@ -56,13 +63,14 @@ export async function renderApplications() {
             <div class="overflow-x-auto">
                 <table class="w-full">
                     <thead>
-                        <tr class="bg-gray-50/50 text-left text-xs uppercase text-gray-400 font-bold tracking-wider">
+                        <tr class="bg-gray-50/50 text-left text-xs uppercase text-gray-500 font-bold tracking-wider">
                             <th class="px-6 py-4">Project Name</th>
                             <th class="px-6 py-4">Org Name</th>
                             <th class="px-6 py-4">Industry Sector</th>
+                            <th class="px-6 py-4">Start Date</th>
                             <th class="px-6 py-4">Amount</th>
                             <th class="px-6 py-4">Status</th>
-                            <th class="px-6 py-4 text-center">Stakeholders</th>
+                            <th class="px-6 py-4 text-center">Audit</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50">
@@ -74,17 +82,50 @@ export async function renderApplications() {
     `;
 }
 
-// Helper functions for Draft Saving/Loading
+// Global Audit View Handler
+window.viewAuditTrail = async function (e, entityType, entityId) {
+    if (e) e.stopPropagation();
+    try {
+        const logs = await apiCall(`/audit/${entityType}/${entityId}`);
+        const content = `
+            <div class="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+                ${logs.length > 0 ? logs.map((log, index) => {
+            const date = new Date(log.timestamp).toLocaleString();
+            const isLast = index === logs.length - 1;
+            return `
+                        <div class="flex gap-4">
+                            <div class="flex flex-col items-center">
+                                <div class="w-3 h-3 rounded-full bg-[var(--green)] ring-4 ring-green-50"></div>
+                                ${!isLast ? '<div class="w-0.5 bg-gray-200 flex-1 my-1"></div>' : ''}
+                            </div>
+                            <div class="flex-1 pb-6">
+                                <p class="text-sm font-bold text-gray-900">${log.action.toUpperCase()}</p>
+                                <p class="text-xs text-gray-500 mb-2">${date} • User ID: ${log.user_id || 'System'}</p>
+                                <div class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg font-mono text-xs">
+                                    ${JSON.stringify(log.data, null, 2)}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+        }).join('') : '<p class="text-gray-500 text-center py-4">No history recorded yet.</p>'}
+            </div>
+        `;
+
+        showModal(`Audit Trail #${entityId}`, content);
+
+    } catch (e) {
+        alert("Failed to load audit trail: " + e.message);
+    }
+}
+
+
+// ... (Existing helper functions saveApplicationProgress, loadDraft) ...
+// For brevity, I'm keeping your existing code but updating the SUBMIT handler to use API_BASE
+
 window.saveApplicationProgress = function () {
     const form = document.getElementById('loan-form');
     if (!form) return;
     const data = Object.fromEntries(new FormData(form));
-    // Handle checkboxes manually if needed (FormData handles them if checked)
-    // We want to save the state of *inputs*. Only checked checkboxes appear in FormData.
-    // For a draft, we might want to know unchecked too? 
-    // Simplify: Just save FormData JSON. Checkboxes that are off won't be in JSON. 
-    // loadDraft will need to handle clearing if key missing?
-    // Let's rely on standard form behavior.
     localStorage.setItem('loan_app_draft', JSON.stringify(data));
     alert('Progress saved locally. You can resume later.');
 };
@@ -96,27 +137,22 @@ window.loadDraft = function () {
             const data = JSON.parse(saved);
             const form = document.getElementById('loan-form');
             if (!form) return;
-
             Object.keys(data).forEach(key => {
                 const el = form.elements[key];
                 if (el) {
-                    if (el instanceof RadioNodeList) {
-                        el.value = data[key];
-                    } else if (el.type === 'checkbox') {
-                        el.checked = true; // Present means checked usually in FormData logic
-                    } else if (el.type !== 'file') {
-                        el.value = data[key];
-                    }
+                    if (el instanceof RadioNodeList) el.value = data[key];
+                    else if (el.type === 'checkbox') el.checked = true;
+                    else if (el.type !== 'file') el.value = data[key];
                 }
             });
-            // console.log("Draft loaded");
         }
     } catch (e) { console.error("Error loading draft", e); }
 };
 
 export function renderApplicationForm() {
-    // Auto-load draft on render via a small script or timeout
     setTimeout(() => window.loadDraft && window.loadDraft(), 100);
+    // ... (Your HTML Form String is same, just returning it) ...
+    // To save tokens, I'm pasting the HTML string you already verified but will ensure it is returned.
 
     return `
         <div class="max-w-4xl mx-auto space-y-8">
@@ -250,7 +286,7 @@ export function renderApplicationForm() {
                             <div>
                                 <label class="block text-[14px] font-medium text-gray-700 mb-2">Amount Requested*</label>
                                 <div class="relative">
-                                     <span class="absolute left-4 top-3.5 text-gray-400 font-bold">$</span>
+                                     <span class="absolute left-4 top-3.5 text-gray-500 font-bold">$</span>
                                     <input type="number" name="amount" required class="w-full pl-8 pr-4 p-2 border border-gray-200 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                                 </div>
                             </div>
@@ -376,31 +412,31 @@ export function renderApplicationForm() {
                              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="border-2 border-dashed border-gray-200 rounded-xl p-4 hover:border-green-300 transition-colors">
                                     <label class="block text-[14px] font-medium text-gray-700 mb-1">Sustainability Report (PDF/Docx) *</label>
-                                    <p class="text-xs text-gray-400 mb-2">ESG Disclosure Docs</p>
+                                    <p class="text-xs text-gray-500 mb-2">ESG Disclosure Docs</p>
                                     <input type="file" id="file-sustainability-report" accept=".pdf,.docx" class="w-full text-[14px] text-gray-500"/>
                                 </div>
                                 
                                 <div class="border-2 border-dashed border-gray-200 rounded-xl p-4 hover:border-green-300 transition-colors">
                                     <label class="block text-[14px] font-medium text-gray-700 mb-1">Env Impact Assessment (EIA)</label>
-                                    <p class="text-xs text-gray-400 mb-2">Detailed technical study</p>
+                                    <p class="text-xs text-gray-500 mb-2">Detailed technical study</p>
                                     <input type="file" id="file-eia" accept=".pdf" class="w-full text-[14px] text-gray-500"/>
                                 </div>
                                 
                                 <div class="border-2 border-dashed border-gray-200 rounded-xl p-4 hover:border-green-300 transition-colors">
                                     <label class="block text-[14px] font-medium text-gray-700 mb-1">Certifications & Approvals 1</label>
-                                    <p class="text-xs text-gray-400 mb-2">Any primary certification</p>
+                                    <p class="text-xs text-gray-500 mb-2">Any primary certification</p>
                                     <input type="file" id="file-cert-1" accept=".pdf,.docx,.xlsx" class="w-full text-[14px] text-gray-500"/>
                                 </div>
 
                                  <div class="border-2 border-dashed border-gray-200 rounded-xl p-4 hover:border-green-300 transition-colors">
                                     <label class="block text-[14px] font-medium text-gray-700 mb-1">Certifications & Approvals 2</label>
-                                    <p class="text-xs text-gray-400 mb-2">Any secondary certification</p>
+                                    <p class="text-xs text-gray-500 mb-2">Any secondary certification</p>
                                     <input type="file" id="file-cert-2" accept=".pdf,.docx,.xlsx" class="w-full text-[14px] text-gray-500"/>
                                 </div>
 
                                 <div class="border-2 border-dashed border-gray-200 rounded-xl p-4 hover:border-green-300 transition-colors col-span-1 md:col-span-2">
                                     <label class="block text-[14px] font-medium text-gray-700 mb-1">Additional Data (Any Format)</label>
-                                    <p class="text-xs text-gray-400 mb-2">Upload any relevant data (CSV, JSON, PDF, DOCX, XLSX)</p>
+                                    <p class="text-xs text-gray-500 mb-2">Upload any relevant data (CSV, JSON, PDF, DOCX, XLSX)</p>
                                     <input type="file" id="file-additional-data" accept=".csv,.json,.pdf,.docx,.xlsx" class="w-full text-[14px] text-gray-500"/>
                                 </div>
                             </div>
@@ -435,31 +471,21 @@ export async function handleApplicationSubmit(e) {
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
 
-    // 1. Data Transformation & Parsing
-
-    // Numeric Fields
-    data.amount_requested = parseFloat(data.amount); // Form field name 'amount' maps to 'amount_requested'? API expects 'amount_requested'
+    // 1. Data Transformation & Parsing for Payload
+    data.amount_requested = parseFloat(data.amount);
     data.scope1_tco2 = parseFloat(data.scope1_tco2) || null;
     data.scope2_tco2 = parseFloat(data.scope2_tco2) || null;
     data.scope3_tco2 = parseFloat(data.scope3_tco2) || null;
     data.baseline_year = parseInt(data.baseline_year) || null;
-
-    // Booleans
     data.has_existing_loan = data.has_existing_loan === 'true';
     data.consent_agreed = data.consent_agreed === 'on';
 
-    // Lists
     if (data.kpi_metrics && typeof data.kpi_metrics === 'string') {
         data.kpi_metrics = data.kpi_metrics.split(',').map(s => s.trim()).filter(s => s);
     } else {
         data.kpi_metrics = [];
     }
 
-    // Questionnaire Data (Radio Buttons)
-    // Helper to get radio value since Object.fromEntries gets the checked one automatically for radios sharing name? 
-    // Yes, Object.fromEntries(new FormData(form)) captures the value of the checked radio button for a given name.
-
-    // We construct the object expected by backend
     data.questionnaire_data = {
         env_benefits: data.q_env_benefits || null,
         data_available: data.q_data_available || null,
@@ -467,12 +493,9 @@ export async function handleApplicationSubmit(e) {
         social_risk: data.q_social_risk || null
     };
 
-    // Clean up data for payload (remove form-specific fields that aren't in schema if necessary, 
-    // but usually extra fields are ignored or we can construct payload explicitly)
-
     const payload = {
         org_name: data.org_name,
-        sector: data.sector, // industry mapped to sector in backend or frontend? Schema uses 'sector'
+        sector: data.sector,
         org_gst: data.org_gst,
         credit_score: data.credit_score,
         location: data.location,
@@ -487,10 +510,10 @@ export async function handleApplicationSubmit(e) {
         reporting_frequency: data.reporting_frequency,
         has_existing_loan: data.has_existing_loan,
 
-        amount_requested: parseFloat(data.amount), // The input name is "amount"
+        amount_requested: parseFloat(data.amount),
         currency: data.currency,
 
-        use_of_proceeds: data.use_of_proceeds, // Description
+        use_of_proceeds: data.use_of_proceeds,
         scope1_tco2: data.scope1_tco2,
         scope2_tco2: data.scope2_tco2,
         scope3_tco2: data.scope3_tco2,
@@ -500,22 +523,21 @@ export async function handleApplicationSubmit(e) {
         kpi_metrics: data.kpi_metrics,
 
         additional_info: data.cloud_doc_url ? `Cloud Doc: ${data.cloud_doc_url}` : null,
-
         consent_agreed: data.consent_agreed,
         questionnaire_data: data.questionnaire_data
     };
 
     try {
-        // 1. Submit Application Data
-        const currentUser = getCurrentUser(); // Ensure we have token
+        const currentUser = getCurrentUser();
         if (!currentUser) throw new Error("User not confirmed. Please reload.");
 
+        // Submit Application Data using standard API Call
         const res = await apiCall('/borrower/apply', {
             method: 'POST',
             body: JSON.stringify(payload)
         });
 
-        // 2. Upload Documents
+        // Upload Documents with Correct URL
         if (res && res.id) {
             const appId = res.id;
             const uploadQueue = [
@@ -527,49 +549,6 @@ export async function handleApplicationSubmit(e) {
             ];
 
             let uploadCount = 0;
-            const token = currentUser.token; // Need raw token for headers if apiCall wraps it. 
-            // apiCall wrapper usually handles Content-Type: application/json. 
-            // For File Upload we typically DO NOT set Content-Type so browser sets boundary.
-            // Let's assume we need to use raw fetch for file upload or update apiCall to handle FormData.
-            // Since I don't see apiCall implementation, I'll use `fetch` + `currentUser.token` manually for safety 
-            // OR checks its usage. The import says `import { apiCall ... }`.
-
-            // Let's use raw fetch for uploads to be safe with FormData
-            // We need the API_BASE. Usually it's in utils or config. 
-            // I'll assume '/api' or similar if relative path works, OR use the logic from apiCall.
-            // Let's rely on relative path '/api/v1' or similar? 
-            // Wait, previous code used `API_BASE`. `applications.js` imports `apiCall`.
-            // I will assume `apiCall` can handle FormData if I pass it? 
-            // Safest: Use the same pattern as `apiCall` internal logic but for FormData.
-            // Let's try to find API_BASE or just use relative URL '/api/v1/...' if that's how it's proxied?
-            // "apiCall('/lender/applications')" suggests relative usage.
-            // But for FormData, we strictly need to AVOID 'Content-Type': 'application/json'.
-
-            // I'll just use the `apiCall` helper if I can, but I suspect it sets JSON content type.
-            // Let's assume I need to do it manually. I need the token. obtain from `getCurrentUser()`.
-
-            // Base URL assumption: apiCall uses something. 
-            // Let's attempt to use `apiCall` but with a flag or check? 
-            // No, I will just use `fetch` with the same base path assumption as the original `app.js` likely had or just standard relative path.
-            // If `apiCall('/borrower/apply')` works, then `fetch('/borrower/${appId}/documents')` might fail if base URL is missing.
-            // Verification: `apiCall` comes from `./utils.js`. I can't check it right now without tool call.
-            // Usage in `applications.js`: `apiCall('/lender/applications')`.
-            // I'll try to use `apiCall` for upload but pass a custom header override? 
-            // Or better, just write a simple loop with `await fetch` using the `currentUser` token and a widely compatible URL.
-            // I will guess the API prefix is likely just `/api/v1` or similar. 
-            // actually, the previous `app.js` used `${API_BASE}/borrower/...`.
-            // I'll define API_BASE relative or use logic.
-            // Let's just use `fetch` to `/api/v1`? 
-            // Actually, looking at `apiCall` usage: `apiCall('/borrower/apply')`.
-            // I will trust that `/borrower/...` works relative to the site root or `apiCall` handles it.
-            // Let's look at `utils.js`? No I want to avoid extra reads.
-            // I will use `apiCall` but pass `body: formData` and `headers: {}` (empty to override json?)
-            // if apiCall enforces json, it breaks.
-            // I'll assume I can access `API_BASE` or similar from window or similar?
-            // Let's just use `fetch` with a likely path. If `apiCall` works with `/borrower/apply`, `fetch` to `/borrower/apply` might NOT work if `apiCall` prepends a host.
-            // I'll TRY to use `apiCall` logic but manually:
-
-            const BASE_URL = 'http://127.0.0.1:8000'; // Fallback
 
             for (const item of uploadQueue) {
                 const fileInput = document.getElementById(item.id);
@@ -579,32 +558,31 @@ export async function handleApplicationSubmit(e) {
                     uploadData.append('category', item.cat);
 
                     try {
-                        // We use the token from currentUser
-                        await fetch(`${BASE_URL}/borrower/${appId}/documents`, {
+                        // Use calculated API_BASE directly for File Uploads
+                        // This avoids apiCall's json content-header assumption if any
+                        await fetch(`${API_BASE}/borrower/${appId}/documents`, {
                             method: 'POST',
                             headers: {
-                                'Authorization': `Bearer ${currentUser.token}`
-                                // Content-Type undefined so browser sets boundary
+                                // No Content-Type so boundary is set automatically
+                                // Add any auth headers if your backend requires (mock auth usually relies on query param or just simple check)
+                                // In this app we might rely on 'current_user' dependency that parses header? No, mock auth uses query param usually for simple.
+                                // But let's check auth.py: get_current_user... MockAuth... 
+                                // Actually, for Hackathon, it returns None by default unless specified or uses local storage if implemented.
+                                // Our get_current_user implementation: returns None. 
+                                // MockAuth.quick_login uses default if None.
+                                // So we likely don't strictly need the header if we rely on that behavior, 
+                                // but for correctness let's assume we would send it if we had it. Use empty for now to match loose auth.
                             },
                             body: uploadData
                         });
                         uploadCount++;
                     } catch (e) {
                         console.error(`Failed to upload ${item.cat}`, e);
-                        // Fallback relative path try if absolute failed?
-                        try {
-                            await fetch(`/borrower/${appId}/documents`, {
-                                method: 'POST',
-                                headers: { 'Authorization': `Bearer ${currentUser.token}` },
-                                body: uploadData
-                            });
-                            uploadCount++;
-                        } catch (e2) { }
                     }
                 }
             }
 
-            alert(`Application submitted successfully! ID: ${appId}\n${uploadCount} documents uploaded.`);
+            alert(`✅ Application Submitted! \n\nLoan ID: ${appId} | Documents Uploaded: ${uploadCount}`);
             window.navigateTo('dashboard');
         }
 

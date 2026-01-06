@@ -23,11 +23,11 @@ except ImportError:
 class FAISSIndex:
     """Manages FAISS index for document chunk retrieval."""
     
-    def __init__(self, loan_app_id: int, dimension: int = 384):
-        self.loan_app_id = loan_app_id
+    def __init__(self, loan_id: int, dimension: int = 384):
+        self.loan_id = loan_id
         self.dimension = dimension
-        self.index_path = settings.FAISS_INDEX_DIR / f"index_{loan_app_id}.faiss"
-        self.mapping_path = settings.FAISS_INDEX_DIR / f"mapping_{loan_app_id}.pkl"
+        self.index_path = settings.FAISS_INDEX_DIR / f"index_{loan_id}.faiss"
+        self.mapping_path = settings.FAISS_INDEX_DIR / f"mapping_{loan_id}.pkl"
         self.index = None
         self.chunk_mapping: List[Dict[str, Any]] = []
         self._load_or_create_index()
@@ -113,6 +113,6 @@ class MockFAISSIndex:
         return np.array([distances[indices]]), np.array([indices])
 
 
-def get_index(loan_app_id: int) -> FAISSIndex:
+def get_index(loan_id: int) -> FAISSIndex:
     """Get or create FAISS index for a loan application."""
-    return FAISSIndex(loan_app_id)
+    return FAISSIndex(loan_id)

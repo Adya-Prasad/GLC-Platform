@@ -45,6 +45,7 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# User Requested
+# user
 todo.md
 prompt.md
+loan_docs/

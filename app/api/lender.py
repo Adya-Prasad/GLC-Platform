@@ -57,22 +57,23 @@ async def list_applications(
             id=app.id,
             project_name=app.project_name,
             borrower_name=app.borrower.user.name if app.borrower and app.borrower.user else "N/A",
-            org_name=app.borrower.org_name if app.borrower else "N/A",
+            org_name=app.org_name or (app.borrower.org_name if app.borrower else "N/A"),
             sector=app.sector,
             amount_requested=app.amount_requested,
             currency=app.currency,
             status=app.status,
             esg_score=app.esg_score,
             glp_eligibility=app.glp_eligibility,
+            planned_start_date=app.planned_start_date.date().isoformat() if app.planned_start_date else None,
             created_at=app.created_at
         ))
     
     return result
 
 
-@router.get("/application/{loan_app_id}")
+@router.get("/application/{loan_id}")
 async def get_application_detail(
-    loan_app_id: int,
+    loan_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -81,7 +82,7 @@ async def get_application_detail(
     if not current_user:
         current_user = MockAuth.quick_login(db, "lender")
     
-    loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_app_id).first()
+    loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_id).first()
     if not loan_app:
         raise HTTPException(status_code=404, detail="Application not found")
     
@@ -159,9 +160,9 @@ async def get_application_detail(
     }
 
 
-@router.post("/application/{loan_app_id}/verify", response_model=VerificationResponse)
+@router.post("/application/{loan_id}/verify", response_model=VerificationResponse)
 async def verify_application(
-    loan_app_id: int,
+    loan_id: int,
     verification: VerificationCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -171,13 +172,13 @@ async def verify_application(
     if not current_user:
         current_user = MockAuth.quick_login(db, "lender")
     
-    loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_app_id).first()
+    loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_id).first()
     if not loan_app:
         raise HTTPException(status_code=404, detail="Application not found")
     
     # Create verification record
     ver = Verification(
-        loan_app_id=loan_app_id,
+        loan_id=loan_id,
         verifier_id=current_user.id,
         verifier_role=verification.verifier_role,
         verification_type="manual_review",
@@ -200,7 +201,7 @@ async def verify_application(
     db.commit()
     db.refresh(ver)
     
-    log_audit_action(db, "LoanApplication", loan_app_id, "verify", current_user.id,
+    log_audit_action(db, "LoanApplication", loan_id, "verify", current_user.id,
                     {"result": verification.result.value, "notes": verification.notes})
     
     return ver

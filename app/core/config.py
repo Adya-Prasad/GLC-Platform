@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./glc_data.db"
     
     # File Storage
-    UPLOAD_DIR: Path = Path("./uploads")
+    UPLOAD_DIR: Path = Path("./loan_docs")
     FAISS_INDEX_DIR: Path = Path("./faiss_indexes")
     REPORTS_DIR: Path = Path("./reports")
     

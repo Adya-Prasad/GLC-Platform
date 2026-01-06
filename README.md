@@ -1,6 +1,14 @@
 # GLC Platform - Green Lending & Compliance Framework
 
+
 🌿 **Hackathon Project** | Green Loan Principles Compliance Platform
+
+---
+# TODO
+1. to check in other ide to check it is working or not on all device
+2. create and publish a build
+3. Deploy it
+---
 
 ## Overview
 
@@ -47,6 +55,31 @@ uvicorn app.main:app --reload --port 8000
 - **API Docs**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 
+### Tech Stack
+| Layer | Technology |
+|-------|------------|
+| Backend | Python 3.12 + FastAPI |
+| Database | SQLite via SQLAlchemy ORM `glc_data.db` |
+| Vector Search | FAISS `faiss-cpu` with sentence-transformers/all-MiniLM-L6-v2 embeddings |
+| NLP/AI | HuggingFace `deepset/roberta-base-squad2` for QA, `google/flan-t5-small` for RAG |
+| PDF Processing | `pdfminer.six` with OCR fallback |
+| Frontend | Vanilla JavaScript ES Modules + TailwindCSS |
+
+
+### Quick Reference Table
+| Feature | File | Key Methods |
+|---------|------|-------------|
+| GLP Categories | app/core/config.py | GLP_CATEGORIES list |
+| DNSH Criteria | app/core/config.py | DNSH_CRITERIA dict |
+| Carbon Indicators | app/core/config.py | CARBON_LOCKIN_INDICATORS list |
+| Use of Proceeds | app/services/glp_rules.py | `validate_use_of_proceeds()` |
+| All 6 DNSH Checks | app/services/glp_rules.py | `assess_dnsh()`, `_check_*()` methods |
+| Carbon Lock-in | app/services/glp_rules.py | `assess_carbon_lockin()` |
+| Overall Eligibility | app/services/glp_rules.py | `assess_glp_eligibility()` |
+| Scoring Integration | app/services/scoring.py | `calculate_dnsh_penalty()`, `calculate_carbon_penalty()` |
+| Pipeline Integration | app/services/ingestion.py | `run_ingestion()` |
+
+
 ## API Endpoints
 
 ### Borrower Endpoints
@@ -77,6 +110,18 @@ uvicorn app.main:app --reload --port 8000
 | GET | `/api/v1/audit` | View audit trail |
 
 ## Project Structure
+
+erDiagram
+    User ||--o| Borrower : has
+    User ||--o{ Document : uploads
+    User ||--o{ AuditLog : creates
+    Borrower ||--o{ LoanApplication : submits
+    LoanApplication ||--o{ Project : contains
+    LoanApplication ||--o{ Document : has
+    LoanApplication ||--o{ KPI : tracks
+    LoanApplication ||--o{ Verification : undergoes
+    Document ||--o{ DocChunk : chunked_into
+    LoanApplication ||--o| IngestionJob : processed_by
 
 ```
 glp-sentinel/

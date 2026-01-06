@@ -18,16 +18,16 @@ class RAGService:
     def __init__(self):
         self.top_k = 6
     
-    def retrieve_passages(self, loan_app_id: int, query: str, k: int = 6) -> List[Dict[str, Any]]:
+    def retrieve_passages(self, loan_id: int, query: str, k: int = 6) -> List[Dict[str, Any]]:
         """Retrieve relevant passages for a query."""
-        index = get_index(loan_app_id)
+        index = get_index(loan_id)
         query_embedding = nlp_service.embed_text(query)
         results = index.search(query_embedding, k=k)
         return results
     
-    def answer_question(self, loan_app_id: int, question: str) -> Dict[str, Any]:
+    def answer_question(self, loan_id: int, question: str) -> Dict[str, Any]:
         """Answer a question using RAG over document chunks."""
-        passages = self.retrieve_passages(loan_app_id, question, k=self.top_k)
+        passages = self.retrieve_passages(loan_id, question, k=self.top_k)
         
         if not passages:
             return {
@@ -50,17 +50,17 @@ class RAGService:
             'evidence': [{'doc_id': p.get('document_id'), 'text': p['chunk_text'][:200], 'score': p.get('score', 0)} for p in passages[:3]]
         }
     
-    def run_extraction_questions(self, loan_app_id: int) -> Dict[str, Dict[str, Any]]:
+    def run_extraction_questions(self, loan_id: int) -> Dict[str, Dict[str, Any]]:
         """Run all standard extraction questions."""
         results = {}
         for question in EXTRACTION_QUESTIONS:
             key = question.lower().replace(' ', '_').replace('?', '')[:30]
-            results[key] = self.answer_question(loan_app_id, question)
+            results[key] = self.answer_question(loan_id, question)
         return results
     
-    def verify_claim(self, loan_app_id: int, claim: str) -> Dict[str, Any]:
+    def verify_claim(self, loan_id: int, claim: str) -> Dict[str, Any]:
         """Verify a claim against document evidence."""
-        passages = self.retrieve_passages(loan_app_id, claim, k=4)
+        passages = self.retrieve_passages(loan_id, claim, k=4)
         
         if not passages:
             return {

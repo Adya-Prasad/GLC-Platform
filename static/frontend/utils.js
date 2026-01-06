@@ -59,12 +59,12 @@ export function formatCurrency(amount, currency = 'USD') {
 export function getStatusClass(status) {
     const statusLower = (status || '').toLowerCase();
     switch (statusLower) {
-        case 'approved': return 'bg-green-100 text-green-700';
-        case 'rejected': return 'bg-red-100 text-red-700';
-        case 'pending': return 'bg-yellow-100 text-yellow-700';
-        case 'submitted': return 'bg-blue-100 text-blue-700';
-        case 'under_review': return 'bg-purple-100 text-purple-700';
-        case 'verified': return 'bg-purple-100 text-purple-700';
+        case 'approved': return 'bg-green-400 text-green-800';
+        case 'rejected': return 'bg-red-300 text-red-700';
+        case 'pending': return 'bg-gray-300 text-gray-700';
+        case 'submitted': return 'bg-gray-300 text-gray-700';
+        case 'under_review': return 'bg-yellow-400 text-purple-700';
+        case 'verified': return 'bg-green-300 text-green-800';
         default: return 'bg-gray-100 text-gray-700';
     }
 }

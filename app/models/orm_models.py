@@ -22,7 +22,6 @@ class UserRole(enum.Enum):
 
 class ApplicationStatus(enum.Enum):
     """Loan application status enumeration."""
-    DRAFT = "draft"
     PENDING = "pending"
     UNDER_REVIEW = "under_review"
     NEEDS_INFO = "needs_info"
@@ -39,16 +38,13 @@ class VerificationResult(enum.Enum):
 
 
 class User(Base):
-    """User model for borrowers, lenders, and reviewers."""
+    """User model for borrowers, lenders, and reviewers (simplified for hackathon)."""
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
-    email = Column(String(255), unique=True, index=True, nullable=False)
     role = Column(Enum(UserRole), nullable=False)
-    token = Column(String(255), unique=True, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    is_active = Column(Boolean, default=True)
+    passcode = Column(String(6), nullable=False)  # Simple 6-digit passcode password for hackathon version
     
     # Relationships
     borrower_profile = relationship("Borrower", back_populates="user", uselist=False)
@@ -81,25 +77,29 @@ class LoanApplication(Base):
     __tablename__ = "loan_applications"
     
     id = Column(Integer, primary_key=True, index=True)
+    loan_id = Column(String(50), unique=True, index=True, nullable=False)  # LOAN_1, LOAN_2, etc.
     borrower_id = Column(Integer, ForeignKey("borrowers.id"), nullable=False)
     project_name = Column(String(500), nullable=False)
     sector = Column(String(255), nullable=False)
-    location = Column(String(255))
-    project_type = Column(String(50))  # New or Existing
+    location = Column(String(255), default="N/A")  # HQ location
+    project_location = Column(String(255), default="N/A")  # Project site location
+    project_type = Column(String(50), default="N/A")  # New or Existing
     amount_requested = Column(Float, nullable=False)
     currency = Column(String(10), default="USD")
     tranche_type = Column(String(100))
-    use_of_proceeds = Column(Text)
+    use_of_proceeds = Column(Text, default="N/A")
+    project_description = Column(Text, default="N/A")  # Detailed project description
     
     # Carbon emissions data
-    scope1_tco2 = Column(Float)
-    scope2_tco2 = Column(Float)
-    scope3_tco2 = Column(Float)
-    total_tco2 = Column(Float)
+    scope1_tco2 = Column(Float, default=0.0)
+    scope2_tco2 = Column(Float, default=0.0)
+    scope3_tco2 = Column(Float, default=0.0)
+    total_tco2 = Column(Float, default=0.0)
     baseline_year = Column(Integer)
     
     # Additional data
-    additional_info = Column(Text)
+    additional_info = Column(Text, default="N/A")
+    cloud_doc_url = Column(String(500), default="N/A")  # Cloud document URL
     
     # ESG and compliance scores
     esg_score = Column(Float)
@@ -113,16 +113,22 @@ class LoanApplication(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    # Project Timeline
+    planned_start_date = Column(DateTime, nullable=True)
+    
+    # Organization Snapshot
+    org_name = Column(String(255), default="N/A")  # Snapshot of org name at time of application
+    
     # Contact & Personal
-    project_pin_code = Column(String(20))
-    contact_email = Column(String(255))
-    contact_phone = Column(String(50))
+    project_pin_code = Column(String(20), default="N/A")
+    contact_email = Column(String(255), default="N/A")
+    contact_phone = Column(String(50), default="N/A")
     has_existing_loan = Column(Boolean, default=False)
     
     # Project & Env Details
-    reporting_frequency = Column(String(50))
-    installed_capacity = Column(String(50))
-    target_reduction = Column(String(50))
+    reporting_frequency = Column(String(50), default="Annual")
+    installed_capacity = Column(String(50), default="N/A")
+    target_reduction = Column(String(50), default="N/A")
     kpi_metrics = Column(JSON, default=[])
 
     # Compliance & Consent
@@ -131,6 +137,9 @@ class LoanApplication(Base):
 
     # Parsed fields from document analysis
     parsed_fields = Column(JSON, default={})
+    
+    # Raw application JSON (stored for reference)
+    raw_application_json = Column(JSON, default={})
     
     # Relationships
     borrower = relationship("Borrower", back_populates="loan_applications")
@@ -145,7 +154,7 @@ class Project(Base):
     __tablename__ = "projects"
     
     id = Column(Integer, primary_key=True, index=True)
-    loan_app_id = Column(Integer, ForeignKey("loan_applications.id"), nullable=False)
+    loan_id = Column(Integer, ForeignKey("loan_applications.id"), nullable=False)
     name = Column(String(500))
     use_of_proceeds_text = Column(Text)
     glp_category_guess = Column(String(255))
@@ -161,7 +170,7 @@ class KPI(Base):
     __tablename__ = "kpis"
     
     id = Column(Integer, primary_key=True, index=True)
-    loan_app_id = Column(Integer, ForeignKey("loan_applications.id"), nullable=False)
+    loan_id = Column(Integer, ForeignKey("loan_applications.id"), nullable=False)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
     kpi_name = Column(String(255), nullable=False)
     unit = Column(String(100))
@@ -182,7 +191,7 @@ class Document(Base):
     __tablename__ = "documents"
     
     id = Column(Integer, primary_key=True, index=True)
-    loan_app_id = Column(Integer, ForeignKey("loan_applications.id"), nullable=False)
+    loan_id = Column(Integer, ForeignKey("loan_applications.id"), nullable=False)
     uploader_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     filename = Column(String(500), nullable=False)
     filepath = Column(String(1000), nullable=False)
@@ -222,7 +231,7 @@ class Verification(Base):
     __tablename__ = "verifications"
     
     id = Column(Integer, primary_key=True, index=True)
-    loan_app_id = Column(Integer, ForeignKey("loan_applications.id"), nullable=False)
+    loan_id = Column(Integer, ForeignKey("loan_applications.id"), nullable=False)
     verifier_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     verifier_role = Column(String(50))
     verification_type = Column(String(100))  # e.g., "use_of_proceeds", "kpi", "dnsh"
@@ -262,7 +271,7 @@ class IngestionJob(Base):
     __tablename__ = "ingestion_jobs"
     
     id = Column(Integer, primary_key=True, index=True)
-    loan_app_id = Column(Integer, ForeignKey("loan_applications.id"), nullable=False)
+    loan_id = Column(Integer, ForeignKey("loan_applications.id"), nullable=False)
     status = Column(String(50), default="pending")  # pending, running, completed, failed
     started_at = Column(DateTime)
     completed_at = Column(DateTime)
