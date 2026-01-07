@@ -73,7 +73,7 @@ class MockAuth:
             demo_users = {
                 UserRole.BORROWER: ("Demo Borrower", "000000"),
                 UserRole.LENDER: ("Demo Lender", "000000"),
-                UserRole.REVIEWER: ("External Reviewer", "000000"),
+                UserRole.SHAREHOLDER: ("External shareholder", "000000"),
             }
             name, passcode = demo_users.get(role_enum, (f"Demo {role}", "000000"))
         

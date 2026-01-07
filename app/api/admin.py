@@ -3,7 +3,7 @@ Admin API Endpoints
 Endpoints for ingestion, reports, audit logs, and external review.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -12,11 +12,12 @@ import zipfile
 import json
 from pathlib import Path
 
-from app.models.db import get_db
-from app.models.orm_models import User, LoanApplication, AuditLog, Document
+from app.models.db import get_db, SessionLocal
+from app.models.orm_models import User, LoanApplication, AuditLog, Document, IngestionJob
 from app.models.schemas import AuditLogResponse, IngestionSummary, GlpReportData
-from app.core.auth import get_current_user, MockAuth
+from app.core.auth import get_current_user, MockAuth, log_audit_action
 from app.core.config import settings
+from app.utils.storage import get_loan_dir
 from app.services.ingestion import ingestion_service
 from app.services.report import report_service
 
@@ -26,10 +27,15 @@ router = APIRouter(tags=["Admin"])
 @router.post("/ingest/run/{loan_id}", response_model=IngestionSummary)
 async def run_ingestion(
     loan_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Trigger document ingestion and analysis for a loan application."""
+    """Trigger document ingestion and analysis for a loan application (non-blocking).
+
+    This endpoint creates a queued IngestionJob and schedules the ingestion to run in the background
+    using a fresh DB session to avoid using the request-scoped session after the request completes.
+    """
     
     if not current_user:
         current_user = MockAuth.quick_login(db, "lender")
@@ -37,22 +43,30 @@ async def run_ingestion(
     loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_id).first()
     if not loan_app:
         raise HTTPException(status_code=404, detail="Loan application not found")
-    
-    try:
-        result = ingestion_service.run_ingestion(db, loan_id)
-        return IngestionSummary(
-            job_id=result['job_id'],
-            loan_id=loan_id,
-            status=result['status'],
-            documents_processed=result['documents_processed'],
-            chunks_created=result['chunks_created'],
-            fields_extracted=result['fields_extracted'],
-            esg_score=result['esg_score'],
-            glp_category=result['glp_category'],
-            processing_time_seconds=result['processing_time_seconds']
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
+    # Create queued ingestion job record immediately
+    job = IngestionJob(loan_id=loan_id, status="queued", started_at=None)
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+
+    # Schedule background task using a helper that opens its own DB session
+    background_tasks.add_task(ingestion_service.start_ingestion_async, job.id)
+
+    # Audit log entry
+    log_audit_action(db, "LoanApplication", loan_id, "ingestion_queued", current_user.id, data={"job_id": job.id})
+
+    return IngestionSummary(
+        job_id=job.id,
+        loan_id=loan_id,
+        status=job.status,
+        documents_processed=0,
+        chunks_created=0,
+        fields_extracted={},
+        esg_score=None,
+        glp_category=None,
+        processing_time_seconds=0.0
+    )
 
 
 @router.get("/report/application/{loan_id}")
@@ -102,12 +116,11 @@ async def request_external_review(
     # Generate report
     report_data = report_service.generate_report(db, loan_id, "json")
     
-    # Create ZIP package
-    package_dir = settings.REPORTS_DIR / "packages"
-    package_dir.mkdir(parents=True, exist_ok=True)
+    # Create ZIP package inside the loan's folder
+    loan_dir = get_loan_dir(loan_app.loan_id)
     
     zip_filename = f"external_review_{loan_id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.zip"
-    zip_path = package_dir / zip_filename
+    zip_path = loan_dir / zip_filename
     
     with zipfile.ZipFile(zip_path, 'w') as zipf:
         # Add report JSON
@@ -129,7 +142,7 @@ async def request_external_review(
     
     return {
         "loan_id": loan_id,
-        "package_url": f"/downloads/{zip_filename}",
+        "package_url": f"/downloads/{loan_app.loan_id}/{zip_filename}",
         "generated_at": datetime.utcnow().isoformat(),
         "contents": ["report.json", f"{len(documents)} documents", "audit_log.json"]
     }
@@ -152,6 +165,33 @@ async def get_audit_logs(
     ).order_by(AuditLog.timestamp.desc()).all()
     
     return logs
+
+
+@router.get("/ingest/job/{job_id}")
+async def get_ingestion_job(
+    job_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get ingestion job status and details."""
+    if not current_user:
+        current_user = MockAuth.quick_login(db, "lender")
+
+    job = db.query(IngestionJob).filter(IngestionJob.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Ingestion job not found")
+
+    return {
+        "job_id": job.id,
+        "loan_id": job.loan_id,
+        "status": job.status,
+        "started_at": job.started_at.isoformat() if job.started_at else None,
+        "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+        "documents_processed": job.documents_processed,
+        "chunks_created": job.chunks_created,
+        "error_message": job.error_message,
+        "summary": job.summary
+    }
 
 
 @router.get("/audit", response_model=List[AuditLogResponse])

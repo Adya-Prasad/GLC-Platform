@@ -194,6 +194,12 @@
             const name = document.getElementById('org-name').value.trim();
             const passcode = document.getElementById('passcode').value.trim();
 
+            // Validate role selection
+            if (!selectedRole) {
+                showStatusMessage('⚠️ Please select a role: Borrower or Lender', 'error');
+                return;
+            }
+
             // Validate name
             if (!name) {
                 document.getElementById('org-name').classList.add('ring-2', 'ring-red-500');

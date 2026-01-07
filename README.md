@@ -111,18 +111,6 @@ uvicorn app.main:app --reload --port 8000
 
 ## Project Structure
 
-erDiagram
-    User ||--o| Borrower : has
-    User ||--o{ Document : uploads
-    User ||--o{ AuditLog : creates
-    Borrower ||--o{ LoanApplication : submits
-    LoanApplication ||--o{ Project : contains
-    LoanApplication ||--o{ Document : has
-    LoanApplication ||--o{ KPI : tracks
-    LoanApplication ||--o{ Verification : undergoes
-    Document ||--o{ DocChunk : chunked_into
-    LoanApplication ||--o| IngestionJob : processed_by
-
 ```
 glp-sentinel/
 ├── app/

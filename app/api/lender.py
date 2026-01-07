@@ -56,15 +56,16 @@ async def list_applications(
         result.append(LoanApplicationListItem(
             id=app.id,
             project_name=app.project_name,
-            borrower_name=app.borrower.user.name if app.borrower and app.borrower.user else "N/A",
-            org_name=app.org_name or (app.borrower.org_name if app.borrower else "N/A"),
+            borrower_name=app.borrower.user.name if app.borrower and app.borrower.user else "none",
+            org_name=app.org_name or (app.borrower.org_name if app.borrower else "none"),
             sector=app.sector,
             amount_requested=app.amount_requested,
             currency=app.currency,
             status=app.status,
             esg_score=app.esg_score,
             glp_eligibility=app.glp_eligibility,
-            planned_start_date=app.planned_start_date.date().isoformat() if app.planned_start_date else None,
+            planned_start_date=(app.planned_start_date.date().isoformat() if hasattr(app.planned_start_date, 'date') else (app.planned_start_date if isinstance(app.planned_start_date, str) else None)),
+            shareholder_entities=app.shareholder_entities if hasattr(app, 'shareholder_entities') else 0,
             created_at=app.created_at
         ))
     

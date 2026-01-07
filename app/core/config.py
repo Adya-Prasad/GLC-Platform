@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./glc_data.db"
     
     # File Storage
-    UPLOAD_DIR: Path = Path("./loan_docs")
+    UPLOAD_DIR: Path = Path("./loan_assets")
     FAISS_INDEX_DIR: Path = Path("./faiss_indexes")
     REPORTS_DIR: Path = Path("./reports")
     
@@ -75,6 +75,16 @@ GLP_CATEGORIES = [
     "Green Buildings",
 ]
 
+# Minimal required fields for loan application payloads
+REQUIRED_FIELDS = [
+    "org_name",
+    "project_name",
+    "amount_requested",
+    "currency",
+    "planned_start_date",
+    "shareholder_entities",
+]
+
 # DNSH (Do No Significant Harm) Criteria
 DNSH_CRITERIA = {
     "climate_mitigation": "Project does not lead to significant GHG emissions",
@@ -105,19 +115,6 @@ HIGH_RISK_SECTORS = [
     "Shipping",
 ]
 
-# Required fields for data completeness scoring
-REQUIRED_FIELDS = [
-    "org_name",
-    "project_name",
-    "sector",
-    "location",
-    "amount_requested",
-    "use_of_proceeds",
-    "scope1_tco2",
-    "scope2_tco2",
-    "scope3_tco2",
-    "baseline_year",
-]
 
 # Extractive QA Questions for automatic processing
 EXTRACTION_QUESTIONS = [

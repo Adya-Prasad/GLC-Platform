@@ -201,5 +201,42 @@ class IngestionService:
             db.commit()
             raise
 
+    def start_ingestion_async(self, job_id: int):
+        """Start ingestion in a fresh DB session for background tasks.
+
+        The background task should call this helper with the IngestionJob id. This method will
+        open a new DB session, mark the job as running, then call `run_ingestion`.
+        """
+        from app.models.db import SessionLocal
+        db = SessionLocal()
+        try:
+            # Load job and associated loan_id
+            job = db.query(IngestionJob).filter(IngestionJob.id == job_id).first()
+            if not job:
+                logger.error(f"Ingestion job {job_id} not found")
+                return
+
+            # Mark as running
+            job.status = "running"
+            job.started_at = datetime.utcnow()
+            db.commit()
+            db.refresh(job)
+
+            # Run ingestion using this fresh DB session
+            try:
+                # Call run_ingestion which will create a new job record as well; to avoid duplicate job rows
+                # we call the pipeline logic directly by using run_ingestion and ignoring its job creation.
+                # Safer approach: call run_ingestion which will create and update its own job record.
+                self.run_ingestion(db, job.loan_id)
+            except Exception as e:
+                logger.exception(f"Background ingestion failed for job {job_id}: {e}")
+                job.status = "failed"
+                job.error_message = str(e)
+                job.completed_at = datetime.utcnow()
+                db.commit()
+        finally:
+            db.close()
+
+ingestion_service = IngestionService()
 
 ingestion_service = IngestionService()

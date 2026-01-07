@@ -53,10 +53,8 @@ static_path = Path(__file__).parent.parent / "static"
 if static_path.exists():
     app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 
-# Mount reports for download
-reports_path = settings.REPORTS_DIR / "packages"
-reports_path.mkdir(parents=True, exist_ok=True)
-app.mount("/downloads", StaticFiles(directory=str(reports_path)), name="downloads")
+# Mount loan_assets for downloads (serve loan-specific reports and packages)
+app.mount("/downloads", StaticFiles(directory=str(settings.UPLOAD_DIR)), name="downloads")
 
 
 @app.on_event("startup")
@@ -106,7 +104,10 @@ async def mock_login(role: str = "borrower", name: str = None, passcode: str = N
     
     db = SessionLocal()
     try:
-        user, login_status = MockAuth.login_with_passcode(db, role, name, passcode)
+        try:
+            user, login_status = MockAuth.login_with_passcode(db, role, name, passcode)
+        except ValueError:
+            return {"error": "Invalid role specified. Use 'borrower' or 'lender'", "status": "error"}
         
         if login_status == "passcode_mismatch":
             return {

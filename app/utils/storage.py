@@ -18,7 +18,9 @@ DOCUMENT_CATEGORY_NAMES = {
     "sustainability_report": "sustainability_report",
     "eia": "environmental_impact_assessment",
     "certification_1": "certification_primary",
-    "certification_2": "certification_secondary",
+    "project-description": "project-description",
+    "use_of_proceeds": "use_of_proceeds",
+    "annual_report": "annual_report",
     "additional_data": "additional_data",
     "general": "document"
 }

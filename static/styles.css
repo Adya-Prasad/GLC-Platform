@@ -12,9 +12,26 @@
     font-family: 'Inter', sans-serif;
 }
 
+/* backgroun styling*/
+
 #main-app {
     background: var(--main-bg);
 }
+
+.custom-bg{
+    margin-top: 9px;
+    padding: 3px;
+     background: linear-gradient(135deg,
+            rgba(255, 255, 255, 0.856) 0%,
+            rgba(255, 252, 219, 0.76) 50%,
+            rgba(166, 255, 163, 0.16) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(92, 138, 92, 0.63);
+    box-shadow: 0 10px 20px rgba(55, 68, 57, 0.19);
+    border-radius: 9px;
+
+}
+/* ---------------- */
 
 /* Typography */
 #page-title {
@@ -35,6 +52,7 @@
     color: var(--green);
     font-weight: 700;
 }
+/* ---------------- */
 
 /* buttons styling */
 .btn-prim {
@@ -57,12 +75,12 @@
 }
 
 .btn-second {
-    color: rgb(94, 119, 94);
+    color: rgb(91, 122, 91);
     font-weight: 500;
     background: linear-gradient(135deg,
-            rgba(255, 255, 255, 0.856) 0%,
-            rgba(206, 250, 209, 0.342) 50%,
-            rgba(252, 255, 253, 0.226) 100%);
+            rgba(255, 255, 255, 0.897) 0%,
+            rgba(252, 255, 252, 0.658) 50%,
+            rgba(252, 255, 253, 0.753) 100%);
     backdrop-filter: blur(20px);
     border: 2px solid rgba(94, 119, 94, 0.64);
     box-shadow: 1px 5px 10px rgba(55, 68, 57, 0.20);
@@ -80,6 +98,8 @@
 .btn-second:hover {
     transform: scale(0.95);
 }
+/* ---------------- */
+
 
 /* Sidebar Styling */
 #sidebar {
@@ -110,35 +130,3 @@ textarea:focus {
     outline: none !important;
 }
 
-/* Animations */
-.fade-in {
-    animation: fadeIn 0.5s ease-in;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.pulse-green {
-    animation: pulseGreen 2s infinite;
-}
-
-@keyframes pulseGreen {
-
-    0%,
-    100% {
-        box-shadow: 0 0 0 0 rgba(54, 122, 35, 0.4);
-    }
-
-    50% {
-        box-shadow: 0 0 0 10px rgba(54, 122, 35, 0);
-    }
-}

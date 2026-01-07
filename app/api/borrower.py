@@ -23,8 +23,8 @@ from app.services.ingestion import ingestion_service
 router = APIRouter(prefix="/borrower", tags=["Borrower"])
 
 
-def get_or_default(value, default="N/A"):
-    """Return value if truthy, otherwise return default."""
+def get_or_default(value, default="none"):
+    """Return value if truthy, otherwise return default (default fallback 'none')."""
     if value is None or value == "" or value == []:
         return default
     return value
@@ -57,10 +57,10 @@ async def create_loan_application(
             user_id=current_user.id,
             org_name=application.org_name,
             industry=application.sector,
-            country=get_or_default(application.location, "N/A").split(",")[-1].strip() if application.location and "," in application.location else get_or_default(application.location, "N/A"),
-            gst_number=get_or_default(application.org_gst, "N/A"),
-            credit_score=get_or_default(application.credit_score, "N/A"),
-            website=get_or_default(application.website, "N/A")
+            country=get_or_default(application.location).split(",")[-1].strip() if application.location and "," in application.location else get_or_default(application.location),
+            gst_number=get_or_default(application.org_gst),
+            credit_score=get_or_default(application.credit_score),
+            website=get_or_default(application.website)
         )
         db.add(borrower)
         db.commit()
@@ -69,9 +69,9 @@ async def create_loan_application(
         # Update borrower profile with latest info
         borrower.org_name = application.org_name
         borrower.industry = application.sector
-        borrower.gst_number = get_or_default(application.org_gst, borrower.gst_number or "N/A")
-        borrower.credit_score = get_or_default(application.credit_score, borrower.credit_score or "N/A")
-        borrower.website = get_or_default(application.website, borrower.website or "N/A")
+        borrower.gst_number = get_or_default(application.org_gst, borrower.gst_number or "none")
+        borrower.credit_score = get_or_default(application.credit_score, borrower.credit_score or "none")
+        borrower.website = get_or_default(application.website, borrower.website or "none")
         db.commit()
     
     # Calculate total CO2
@@ -83,49 +83,51 @@ async def create_loan_application(
     # Generate loan_id
     loan_id_str = generate_loan_id(db)
     
-    # Parse planned start date
-    planned_start = None
-    if application.planned_start_date:
-        try:
-            planned_start = datetime.strptime(application.planned_start_date, "%Y-%m-%d")
-        except ValueError:
-            pass  # Keep as None if parsing fails
+    # Parse planned start date (required)
+    try:
+        planned_start = datetime.strptime(application.planned_start_date, "%Y-%m-%d")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid 'planned_start_date' format. Expected YYYY-MM-DD")
+
+    # Shareholder entities
+    shareholder_entities = application.shareholder_entities if hasattr(application, 'shareholder_entities') else 0
     
     # Build raw application JSON for storage (matching frontend structure)
     raw_json = {
-        "organization": {
-            "org_name": application.org_name,
-            "contact_email": get_or_default(application.contact_email, "N/A"),
-            "contact_phone": get_or_default(application.contact_phone, "N/A"),
-            "gst_tax_id": get_or_default(application.org_gst, "N/A"),
-            "credit_score": get_or_default(application.credit_score, "N/A"),
-            "headquarters_location": get_or_default(application.location, "N/A"),
-            "website": get_or_default(application.website, "N/A")
+        "organization_details": {
+            "organization_name": application.org_name,
+            "contact_email": get_or_default(application.contact_email),
+            "contact_phone": get_or_default(application.contact_phone),
+            "tax_id": application.org_gst,
+            "Credit Score": application.credit_score,
+            "headquarters_location": get_or_default(application.location),
+            "website": get_or_default(application.website),
+            "annual_revenue": application.annual_revenue
         },
-        "project_info": {
+        "project_information": {
             "project_title": application.project_name,
             "project_sector": application.sector,
-            "project_location": get_or_default(application.project_location, "N/A"),
-            "project_pin_zip_code": get_or_default(application.project_pin_code, "N/A"),
+            "project_location": get_or_default(application.project_location),
+            "project_pin_code": get_or_default(application.project_pin_code),
             "project_type": get_or_default(application.project_type, "New Project"),
             "reporting_frequency": get_or_default(application.reporting_frequency, "Annual"),
             "existing_loans": "Yes" if application.has_existing_loan else "No",
-            "planned_start_date": get_or_default(application.planned_start_date, "N/A"),
+            "planned_start_date": get_or_default(application.planned_start_date),
             "amount_requested": application.amount_requested,
             "currency": application.currency,
-            "project_description": get_or_default(application.project_description, get_or_default(application.use_of_proceeds, "N/A"))
+            "project_description": get_or_default(application.project_description, get_or_default(application.use_of_proceeds))
         },
-        "green_kpis": {
-            "detailed_description_of_proceeds_usage": get_or_default(application.use_of_proceeds, "N/A"),
-            "scope1_emissions": scope1,
-            "scope2_emissions": scope2,
-            "scope3_emissions": scope3,
-            "installed_capacity_mw": get_or_default(application.installed_capacity, "N/A"),
-            "target_reduction_percent": get_or_default(application.target_reduction, "N/A"),
-            "baseline_year": application.baseline_year or "N/A",
+        "green_qualification_and_kpis": {
+            "use_of_proceeds_description": get_or_default(application.use_of_proceeds),
+            "scope1_tco2": scope1,
+            "scope2_tco2": scope2,
+            "scope3_tco2": scope3,
+            "ghg_target_reduction": application.ghg_target_reduction or application.target_reduction,
+            "ghg_baseline_year": application.ghg_baseline_year or application.baseline_year,
             "selected_kpis": application.kpi_metrics if application.kpi_metrics else []
         },
-        "esg_compliance_questionnaire": application.questionnaire_data or {}
+        "esg_compliance_questionnaire": application.questionnaire_data or {},
+        "supporting_documents": {}
     }
     
     # Create loan application
@@ -134,28 +136,29 @@ async def create_loan_application(
         borrower_id=borrower.id,
         project_name=application.project_name,
         sector=application.sector,
-        location=get_or_default(application.location, "N/A"),
-        project_location=get_or_default(application.project_location, "N/A"),
+        location=get_or_default(application.location),
+        project_location=get_or_default(application.project_location),
         project_type=get_or_default(application.project_type, "New Project"),
         amount_requested=application.amount_requested,
         currency=application.currency,
-        use_of_proceeds=get_or_default(application.use_of_proceeds, "N/A"),
-        project_description=get_or_default(application.project_description, get_or_default(application.use_of_proceeds, "N/A")),
+        use_of_proceeds=get_or_default(application.use_of_proceeds),
+        project_description=get_or_default(application.project_description, get_or_default(application.use_of_proceeds)),
+        annual_revenue=application.annual_revenue,
         scope1_tco2=scope1,
         scope2_tco2=scope2,
         scope3_tco2=scope3,
         total_tco2=total_co2,
         baseline_year=application.baseline_year,
-        additional_info=get_or_default(application.additional_info, "N/A"),
-        cloud_doc_url=get_or_default(application.cloud_doc_url, "N/A"),
+        additional_info=get_or_default(application.additional_info),
+        cloud_doc_url=get_or_default(application.cloud_doc_url),
         
         # Organization snapshot
         org_name=application.org_name,
         
         # Contact info
-        project_pin_code=get_or_default(application.project_pin_code, "N/A"),
-        contact_email=get_or_default(application.contact_email, "N/A"),
-        contact_phone=get_or_default(application.contact_phone, "N/A"),
+        project_pin_code=get_or_default(application.project_pin_code),
+        contact_email=get_or_default(application.contact_email),
+        contact_phone=get_or_default(application.contact_phone),
         has_existing_loan=application.has_existing_loan,
         
         # Timeline
@@ -163,9 +166,12 @@ async def create_loan_application(
         
         # Project details
         reporting_frequency=get_or_default(application.reporting_frequency, "Annual"),
-        installed_capacity=get_or_default(application.installed_capacity, "N/A"),
-        target_reduction=get_or_default(application.target_reduction, "N/A"),
+        installed_capacity=get_or_default(application.installed_capacity),
+        target_reduction=get_or_default(application.target_reduction),
         kpi_metrics=application.kpi_metrics if application.kpi_metrics else [],
+        
+        # Shareholders
+        shareholder_entities=shareholder_entities,
         
         # Compliance
         consent_agreed=application.consent_agreed,
@@ -181,12 +187,29 @@ async def create_loan_application(
     db.commit()
     db.refresh(loan_app)
     
-    # Save raw application JSON to loan_docs folder
+    # Save raw application JSON to loan_assets folder
     try:
         save_application_json(loan_id_str, raw_json)
     except Exception as e:
         # Log but don't fail the application creation
         print(f"Warning: Could not save application JSON: {e}")
+
+    # Persist raw_application_json into the LoanApplication record for easy retrieval
+    try:
+        loan_app.raw_application_json = raw_json
+        # Mirror some top-level fields to dedicated columns
+        loan_app.organization_name = application.org_name
+        loan_app.tax_id = application.org_gst
+        loan_app.credit_score = application.credit_score
+        loan_app.headquarters_location = application.location
+        loan_app.project_title = application.project_name
+        loan_app.project_sector = application.sector
+        loan_app.use_of_proceeds_description = application.use_of_proceeds
+        loan_app.ghg_target_reduction = application.ghg_target_reduction
+        loan_app.ghg_baseline_year = application.ghg_baseline_year
+        db.commit()
+    except Exception as e:
+        print('Warning: Could not persist raw_application_json to LoanApplication:', e)
     
     # Log audit
     log_audit_action(db, "LoanApplication", loan_app.id, "create", current_user.id, 
@@ -257,6 +280,19 @@ async def upload_document(
     db.commit()
     db.refresh(document)
     
+    # Update loan application's raw_application_json.supporting_documents mapping
+    try:
+        loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_id).first()
+        if loan_app:
+            raw = loan_app.raw_application_json or {}
+            supp = raw.get('supporting_documents', {})
+            supp[category] = standardized_name
+            raw['supporting_documents'] = supp
+            loan_app.raw_application_json = raw
+            db.commit()
+    except Exception as e:
+        print('Warning: Could not update supporting_documents in raw_application_json:', e)
+
     log_audit_action(db, "Document", document.id, "upload", current_user.id,
                     {"filename": standardized_name, "original_filename": file.filename, 
                      "loan_id": loan_id, "loan_id_str": loan_id_str, "category": category})
@@ -319,9 +355,18 @@ async def get_my_applications(
         LoanApplication.borrower_id == borrower.id
     ).order_by(LoanApplication.created_at.desc()).all()
     
-    # Manually populate org_name for the schema
+    # Manually populate org_name and format planned_start_date for the schema
     for app in applications:
         app.org_name = app.org_name or borrower.org_name
+        # Ensure planned_start_date is serialized as ISO date string for responses
+        if app.planned_start_date:
+            try:
+                app.planned_start_date = app.planned_start_date.date().isoformat()
+            except Exception:
+                app.planned_start_date = None
+        # Ensure shareholder_entities attribute exists
+        if not hasattr(app, 'shareholder_entities'):
+            app.shareholder_entities = 0
         
     return applications
 
@@ -337,6 +382,15 @@ async def get_application_details(
     loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_id).first()
     if not loan_app:
         raise HTTPException(status_code=404, detail="Application not found")
+    
+    # Ensure planned_start_date formatted
+    if loan_app.planned_start_date:
+        try:
+            loan_app.planned_start_date = loan_app.planned_start_date.date().isoformat()
+        except Exception:
+            loan_app.planned_start_date = None
+    if not hasattr(loan_app, 'shareholder_entities'):
+        loan_app.shareholder_entities = 0
     
     return loan_app
 

@@ -17,14 +17,13 @@ class UserRole(enum.Enum):
     """User role enumeration."""
     BORROWER = "borrower"
     LENDER = "lender"
-    REVIEWER = "reviewer"
+    SHAREHOLDER = "shareholder"
 
 
 class ApplicationStatus(enum.Enum):
     """Loan application status enumeration."""
     PENDING = "pending"
     UNDER_REVIEW = "under_review"
-    NEEDS_INFO = "needs_info"
     APPROVED = "approved"
     REJECTED = "rejected"
 
@@ -35,16 +34,17 @@ class VerificationResult(enum.Enum):
     FAIL = "fail"
     UNCLEAR = "unclear"
     PENDING = "pending"
+    NEEDS_INFO = "needs_info"
 
 
 class User(Base):
-    """User model for borrowers, lenders, and reviewers (simplified for hackathon)."""
+    """User model for borrowers, lenders, and shareholder (simplified for hackathon)."""
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     role = Column(Enum(UserRole), nullable=False)
-    passcode = Column(String(6), nullable=False)  # Simple 6-digit passcode password for hackathon version
+    passcode = Column(String(6), nullable=False) 
     
     # Relationships
     borrower_profile = relationship("Borrower", back_populates="user", uselist=False)
@@ -81,14 +81,15 @@ class LoanApplication(Base):
     borrower_id = Column(Integer, ForeignKey("borrowers.id"), nullable=False)
     project_name = Column(String(500), nullable=False)
     sector = Column(String(255), nullable=False)
-    location = Column(String(255), default="N/A")  # HQ location
-    project_location = Column(String(255), default="N/A")  # Project site location
-    project_type = Column(String(50), default="N/A")  # New or Existing
+    location = Column(String(255), default="none")  # HQ location
+    project_location = Column(String(255), default="none")  # Project site location
+    project_type = Column(String(50), default="none")  # New or Existing
     amount_requested = Column(Float, nullable=False)
     currency = Column(String(10), default="USD")
     tranche_type = Column(String(100))
-    use_of_proceeds = Column(Text, default="N/A")
-    project_description = Column(Text, default="N/A")  # Detailed project description
+    use_of_proceeds = Column(Text, default="none")
+    project_description = Column(Text, default="none", nullable=False)  # Detailed project description
+    annual_revenue = Column(Float, nullable=True)  # Organization annual revenue (optional)
     
     # Carbon emissions data
     scope1_tco2 = Column(Float, default=0.0)
@@ -98,8 +99,8 @@ class LoanApplication(Base):
     baseline_year = Column(Integer)
     
     # Additional data
-    additional_info = Column(Text, default="N/A")
-    cloud_doc_url = Column(String(500), default="N/A")  # Cloud document URL
+    additional_info = Column(Text, default="none")
+    cloud_doc_url = Column(String(500), default="none")  # Cloud document URL
     
     # ESG and compliance scores
     esg_score = Column(Float)
@@ -114,21 +115,39 @@ class LoanApplication(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Project Timeline
-    planned_start_date = Column(DateTime, nullable=True)
+    planned_start_date = Column(DateTime, nullable=False)
     
     # Organization Snapshot
-    org_name = Column(String(255), default="N/A")  # Snapshot of org name at time of application
+    org_name = Column(String(255), default="none")  # Snapshot of org name at time of application
+
+    # Additional organization fields aligned with frontend JSON
+    organization_name = Column(String(500))
+    tax_id = Column(String(100))
+    credit_score = Column(Integer)
+    headquarters_location = Column(String(255))
+
+    # Project aliases (mirror JSON names)
+    project_title = Column(String(500))
+    project_sector = Column(String(255))
+
+    # Use of proceeds and GHG specific columns
+    use_of_proceeds_description = Column(Text, default="none")
+    ghg_target_reduction = Column(Integer)
+    ghg_baseline_year = Column(Integer)
     
     # Contact & Personal
-    project_pin_code = Column(String(20), default="N/A")
-    contact_email = Column(String(255), default="N/A")
-    contact_phone = Column(String(50), default="N/A")
+    project_pin_code = Column(String(20), default="none")
+    contact_email = Column(String(255), default="none")
+    contact_phone = Column(String(50), default="none")
     has_existing_loan = Column(Boolean, default=False)
+    
+    # Shareholder Entities
+    shareholder_entities = Column(Integer, default=0, nullable=False)
     
     # Project & Env Details
     reporting_frequency = Column(String(50), default="Annual")
-    installed_capacity = Column(String(50), default="N/A")
-    target_reduction = Column(String(50), default="N/A")
+    installed_capacity = Column(String(50), default="none")
+    target_reduction = Column(String(50), default="none")
     kpi_metrics = Column(JSON, default=[])
 
     # Compliance & Consent

@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.models.orm_models import LoanApplication, Document, KPI, Verification
 from app.core.config import settings
+from app.utils.storage import get_loan_dir
 
 logger = logging.getLogger(__name__)
 
@@ -43,12 +44,12 @@ class ReportService:
             
             "project_summary": {
                 "project_name": loan_app.project_name,
-                "borrower": borrower.org_name if borrower else "N/A",
+                "borrower": borrower.org_name if borrower else "none",
                 "sector": loan_app.sector,
                 "location": loan_app.location,
                 "project_type": loan_app.project_type,
                 "loan_amount": f"{loan_app.currency} {loan_app.amount_requested:,.2f}",
-                "application_status": loan_app.status.value if loan_app.status else "N/A",
+                "application_status": loan_app.status.value if loan_app.status else "none",
                 "use_of_proceeds": loan_app.use_of_proceeds,
             },
             
@@ -106,10 +107,18 @@ class ReportService:
             "recommendations": self._generate_recommendations(loan_app),
         }
         
+        # Save report JSON into loan-specific folder
+        try:
+            loan_dir = get_loan_dir(loan_app.loan_id)
+            with open(loan_dir / f"{report_id}.json", "w", encoding="utf-8") as f:
+                json.dump(report_data, f, indent=2, default=str)
+        except Exception as e:
+            logger.warning(f"Could not write report JSON to loan dir: {e}")
+
         if format == "pdf":
-            pdf_path = self._generate_pdf(report_data)
+            pdf_path = self._generate_pdf(report_data, loan_app.loan_id)
             report_data["pdf_url"] = str(pdf_path)
-        
+
         return report_data
     
     def _get_grade(self, score: float) -> str:
@@ -134,9 +143,9 @@ class ReportService:
             recs.append("Strong GLP alignment. Continue annual reporting.")
         return recs
     
-    def _generate_pdf(self, report_data: Dict[str, Any]) -> Path:
-        """Generate PDF report using WeasyPrint or fallback."""
-        report_dir = settings.REPORTS_DIR
+    def _generate_pdf(self, report_data: Dict[str, Any], loan_id: str) -> Path:
+        """Generate PDF report into loan-specific folder (uses loan_assets/LOAN_ID)."""
+        report_dir = get_loan_dir(loan_id)
         report_dir.mkdir(parents=True, exist_ok=True)
         filename = f"{report_data['report_id']}.pdf"
         pdf_path = report_dir / filename
@@ -148,13 +157,13 @@ class ReportService:
             from weasyprint import HTML
             HTML(string=html_content).write_pdf(pdf_path)
             logger.info(f"PDF report generated: {pdf_path}")
-        except ImportError:
+        except Exception:
             # Fallback: save as HTML
             html_path = report_dir / f"{report_data['report_id']}.html"
             with open(html_path, 'w', encoding='utf-8') as f:
                 f.write(html_content)
             pdf_path = html_path
-            logger.warning("WeasyPrint not available, saved as HTML")
+            logger.warning("WeasyPrint not available or failed, saved as HTML")
         
         return pdf_path
     

@@ -5,7 +5,7 @@ export async function renderAuditPage() {
     // Get ID from window state
     const appId = window.currentAuditAppId;
     if (!appId) {
-        return `<div class="p-8 text-center">No application selected. <button onclick="window.navigateTo('applications')" class="text-green-600 font-bold">Go back</button></div>`;
+        return `<div class="p-8 text-center">No application selected. <button onclick="window.navigateTo('applications')" class="text-green-600 font-bold">Go back to application page and select one</button></div>`;
     }
 
     let app, logs, isLender;

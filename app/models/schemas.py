@@ -14,7 +14,7 @@ from enum import Enum
 class UserRoleEnum(str, Enum):
     BORROWER = "borrower"
     LENDER = "lender"
-    REVIEWER = "reviewer"
+    SHAREHOLDER = "shareholder"
 
 
 class ApplicationStatusEnum(str, Enum):
@@ -98,13 +98,24 @@ class LoanApplicationCreate(BaseModel):
     project_type: str = Field(default="New Project", description="New or Existing project")
     reporting_frequency: Optional[str] = Field(None, description="Annual, Half-yearly, Quarterly")
     has_existing_loan: bool = Field(default=False, description="Does borrower have existing loans?")
-    planned_start_date: Optional[str] = Field(None, description="Planned project start date (YYYY-MM-DD)")
+    planned_start_date: str = Field(..., description="Planned project start date (YYYY-MM-DD)")
+    shareholder_entities: int = Field(..., ge=0, description="Number of shareholder entities involved in the project")
     amount_requested: float = Field(..., gt=0, description="Loan amount requested")
     currency: str = Field(default="USD", description="Currency code")
-    project_description: Optional[str] = Field(None, description="Detailed project description")
-    
+    project_description: str = Field(..., description="Detailed project description")
+    annual_revenue: Optional[float] = Field(None, description="Organization annual revenue")
+    tax_id: Optional[str] = Field(None, description="Organization tax identifier (e.g., GSTIN)")
+    credit_score: Optional[int] = Field(None, description="Organization credit score")
+    headquarters_location: Optional[str] = Field(None, description="Headquarters location")
+
+    # Project aliases matching incoming JSON
+    project_title: Optional[str] = Field(None, description="Project title (alias)")
+    project_sector: Optional[str] = Field(None, description="Project sector (alias)")
+
     # Green KPIs
     use_of_proceeds: str = Field(..., description="Description of how funds will be used")
+    ghg_target_reduction: Optional[int] = Field(None, description="GHG target reduction percentage")
+    ghg_baseline_year: Optional[int] = Field(None, description="GHG baseline year")
     scope1_tco2: Optional[float] = Field(None, ge=0, description="Scope 1 emissions in tCO2")
     scope2_tco2: Optional[float] = Field(None, ge=0, description="Scope 2 emissions in tCO2")
     scope3_tco2: Optional[float] = Field(None, ge=0, description="Scope 3 emissions in tCO2")
@@ -113,13 +124,15 @@ class LoanApplicationCreate(BaseModel):
     baseline_year: Optional[int] = Field(None, description="Baseline year for emissions")
     kpi_metrics: List[str] = Field(default=[], description="Selected KPIs")
     
+    # Supporting Docs
+    additional_info: Optional[str] = Field(None, description="Additional project information")
+    cloud_doc_url: Optional[str] = Field(None, description="Cloud document URL")
+
     # ESG Questionnaire & Consent
     questionnaire_data: Dict[str, Any] = Field(default={}, description="GLP Questionnaire answers")
     consent_agreed: bool = Field(default=False, description="User agreed to terms")
     
-    # Additional
-    additional_info: Optional[str] = Field(None, description="Additional project information")
-    cloud_doc_url: Optional[str] = Field(None, description="Cloud document URL")
+   
 
 
 class LoanApplicationResponse(BaseModel):
@@ -131,15 +144,19 @@ class LoanApplicationResponse(BaseModel):
     location: Optional[str]
     project_location: Optional[str]
     project_type: Optional[str]
-    project_description: Optional[str]
+    project_description: str
+    annual_revenue: Optional[float] = None
     amount_requested: float
     currency: str
     use_of_proceeds: Optional[str]
+    use_of_proceeds_description: Optional[str]
     scope1_tco2: Optional[float]
     scope2_tco2: Optional[float]
     scope3_tco2: Optional[float]
     total_tco2: Optional[float]
     baseline_year: Optional[int]
+    ghg_target_reduction: Optional[int]
+    ghg_baseline_year: Optional[int]
     
     project_pin_code: Optional[str]
     contact_email: Optional[str]
@@ -148,6 +165,11 @@ class LoanApplicationResponse(BaseModel):
     
     planned_start_date: Optional[str]
     org_name: Optional[str] = None
+    organization_name: Optional[str] = None
+    tax_id: Optional[str] = None
+    credit_score: Optional[int] = None
+    headquarters_location: Optional[str] = None
+    shareholder_entities: Optional[int] = 0
     
     reporting_frequency: Optional[str]
     installed_capacity: Optional[str]
@@ -156,6 +178,7 @@ class LoanApplicationResponse(BaseModel):
     
     questionnaire_data: Optional[Dict[str, Any]]
     cloud_doc_url: Optional[str]
+    raw_application_json: Optional[Dict[str, Any]]
     
     esg_score: Optional[float]
     glp_eligibility: Optional[bool]
@@ -183,6 +206,7 @@ class LoanApplicationListItem(BaseModel):
     esg_score: Optional[float]
     glp_eligibility: Optional[bool]
     planned_start_date: Optional[str]
+    shareholder_entities: Optional[int] = 0
     created_at: datetime
     
     class Config:
@@ -252,7 +276,7 @@ class KPIResponse(KPIBase):
 # ==================== Verification Schemas ====================
 
 class VerificationCreate(BaseModel):
-    verifier_role: str = Field(..., description="Role of verifier (lender, reviewer)")
+    verifier_role: str = Field(..., description="Role of verifier (lender, shareholder)")
     result: VerificationResultEnum
     notes: Optional[str] = None
 
@@ -392,8 +416,8 @@ class AuditLogResponse(BaseModel):
 # ==================== External Review Schemas ====================
 
 class ExternalReviewRequest(BaseModel):
-    reviewer_name: Optional[str] = None
-    reviewer_org: Optional[str] = None
+    shareholder_name: Optional[str] = None
+    shareholder_org: Optional[str] = None
 
 
 class ExternalReviewResponse(BaseModel):
