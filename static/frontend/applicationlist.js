@@ -19,7 +19,7 @@ export async function renderApplications() {
 
     const tableBody = (apps && apps.length > 0)
         ? apps.map(a => `
-            <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer group" onclick="window.viewApplication(${a.id})">
+            <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer group border-b p-2 border-[color:var(--border-color)]" onclick="window.viewApplication(${a.id})">
                 <td class="px-6 py-4">
                     <p class="font-bold text-gray-900 group-hover:text-[var(--green)] transition-colors">${a.project_name}</p>
                     <p class="text-[10px] text-gray-500 font-medium uppercase mt-0.5">ID: LOAN-${a.id}</p>

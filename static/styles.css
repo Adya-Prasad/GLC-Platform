@@ -21,10 +21,7 @@
 .custom-bg{
     margin-top: 9px;
     padding: 3px;
-     background: linear-gradient(135deg,
-            rgba(255, 255, 255, 0.856) 0%,
-            rgba(255, 252, 219, 0.76) 50%,
-            rgba(166, 255, 163, 0.16) 100%);
+     background: linear-gradient(170deg, rgba(255, 255, 255, 0.856) 0%, rgba(255, 255, 253, 0.856) 30%, rgba(129, 177, 127, 0.18) 100%);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(92, 138, 92, 0.63);
     box-shadow: 0 10px 20px rgba(55, 68, 57, 0.19);

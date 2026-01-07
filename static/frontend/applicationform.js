@@ -217,7 +217,7 @@ export function renderApplicationForm() {
                              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                  <div>
                                     <label class="block text-[14px] font-medium text-gray-800 mb-2">GHG Target Reduction (%)</label>
-                                    <input type="text" name="ghg_target_reduction" placeholder="e.g. 30%" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
+                                    <input type="text" name="ghg_target_reduction" placeholder="e.g. 60" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                                 </div>
                                 <div>
                                     <label class="block text-[14px] font-medium text-gray-800 mb-2">GHG Baseline Year</label>
@@ -452,6 +452,10 @@ export async function handleApplicationSubmit(e) {
         amount_requested: parseFloat(data.amount),
         currency: data.currency,
 
+        project_description: data.project_description,
+        planned_start_date: data.planned_start_date,
+        shareholder_entities: parseInt(data.shareholder_entities) || 0,
+
         use_of_proceeds: data.use_of_proceeds,
         scope1_tco2: data.scope1_tco2,
         scope2_tco2: data.scope2_tco2,
@@ -480,14 +484,15 @@ export async function handleApplicationSubmit(e) {
         if (res && res.id) {
             const appId = res.id;
             const uploadQueue = [
+                { id: 'file-project-description', cat: 'project_description' },
+                { id: 'file-annual-report', cat: 'annual_report' },
                 { id: 'file-sustainability-report', cat: 'sustainability_report' },
-                { id: 'file-eia', cat: 'eia' },
-                { id: 'file-cert-1', cat: 'certification_1' },
-                { id: 'file-cert-2', cat: 'certification_2' },
-                { id: 'file-additional-data', cat: 'additional_data' }
+                { id: 'file-use-of-proceeds', cat: 'use_of_proceeds' },
+                { id: 'file-cert-1', cat: 'certification_1' }
             ];
 
             let uploadCount = 0;
+            const uploadedFiles = [];
 
             for (const item of uploadQueue) {
                 const fileInput = document.getElementById(item.id);
@@ -498,21 +503,26 @@ export async function handleApplicationSubmit(e) {
 
                     try {
                         // Use calculated API_BASE directly for File Uploads
-                        await fetch(`${API_BASE}/borrower/${appId}/documents`, {
+                        const resp = await fetch(`${API_BASE}/borrower/${appId}/documents`, {
                             method: 'POST',
-                            headers: {
-                                // No Content-Type so boundary is set automatically
-                            },
                             body: uploadData
                         });
-                        uploadCount++;
+
+                        if (resp.ok) {
+                            const json = await resp.json();
+                            uploadCount++;
+                            uploadedFiles.push(json.filename || item.id);
+                        } else {
+                            console.error(`Failed to upload ${item.cat}`, resp.statusText);
+                        }
                     } catch (e) {
                         console.error(`Failed to upload ${item.cat}`, e);
                     }
                 }
             }
 
-            alert(`✅ Application Submitted! \n\nLoan ID: ${appId} | Documents Uploaded: ${uploadCount}`);
+            const filesMsg = uploadedFiles.length ? `\n\nFiles uploaded:\n- ${uploadedFiles.join('\n- ')}` : '';
+            alert(`✅ Application Submitted! \n\nLoan ID: ${appId} | Documents Uploaded: ${uploadCount}${filesMsg}`);
             window.navigateTo('dashboard');
         }
 

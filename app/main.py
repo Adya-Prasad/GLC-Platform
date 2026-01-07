@@ -12,8 +12,7 @@ import logging
 
 from app.core.config import settings
 from app.models.db import init_db
-from app.api.borrower import router as borrower_router
-from app.api.lender import router as lender_router
+from app.api.users import router as users_router
 from app.api.admin import router as admin_router
 from app.api.audit import router as audit_router
 
@@ -43,8 +42,7 @@ app.add_middleware(
 )
 
 # Include API routers
-app.include_router(borrower_router, prefix="/api/v1")
-app.include_router(lender_router, prefix="/api/v1")
+app.include_router(users_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(audit_router, prefix="/api/v1")
 
