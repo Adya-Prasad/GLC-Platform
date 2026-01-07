@@ -79,7 +79,7 @@ export function renderApplicationForm() {
                                 <input type="url" name="website" placeholder="https://" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                             </div>
                             <div>
-                                <label class="block text-[14px] font-medium text-gray-800 mb-2">Annual Revenue *</label>
+                                <label class="block text-[14px] font-medium text-gray-800 mb-2">Annual Revenue (USD)*</label>
                                 <input type="number" step="0.01" name="annual_revenue" required placeholder="Annual revenue (e.g. 1500000)" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                             </div>  
                         </div>
@@ -348,7 +348,7 @@ export function renderApplicationForm() {
                              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 
                                 <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-green-300 transition-colors">
-                                    <label class="block text-[14px] font-medium text-gray-800 mb-1">Project Description Document* </label>
+                                    <label class="block text-[14px] font-medium text-gray-800 mb-1">Project Report Document * </label>
                                     <p class="text-xs text-gray-500 mb-2">Project Description (PDF/Docx/Xlsx)</p>
                                     <input type="file" id="file-project-description" accept=".pdf,.docx,.xlsx" class="w-full text-[14px] text-gray-500"/>
                                 </div>
@@ -373,7 +373,7 @@ export function renderApplicationForm() {
                                 
                                 
                                 <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-green-300 transition-colors">
-                                    <label class="block text-[14px] font-medium text-gray-800 mb-1">Certifications & Approvals 1</label>
+                                    <label class="block text-[14px] font-medium text-gray-800 mb-1">ESG Certifications & Approvals 1</label>
                                     <p class="text-xs text-gray-500 mb-2">Any primary certification</p>
                                     <input type="file" id="file-cert-1" accept=".pdf,.docx,.xlsx" class="w-full text-[14px] text-gray-500"/>
                                 </div>
@@ -480,50 +480,67 @@ export async function handleApplicationSubmit(e) {
             body: JSON.stringify(payload)
         });
 
-        // Upload Documents with Correct URL
-        if (res && res.id) {
-            const appId = res.id;
-            const uploadQueue = [
-                { id: 'file-project-description', cat: 'project_description' },
-                { id: 'file-annual-report', cat: 'annual_report' },
-                { id: 'file-sustainability-report', cat: 'sustainability_report' },
-                { id: 'file-use-of-proceeds', cat: 'use_of_proceeds' },
-                { id: 'file-cert-1', cat: 'certification_1' }
-            ];
+        // Immediately acknowledge submission and disable submit to avoid duplicates
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            const origText = submitBtn.innerText;
+            submitBtn.innerText = 'Submitting...';
+            // Start background uploads so user sees immediate confirmation
+            if (res && res.id) {
+                const appId = res.id;
+                alert(`✅ Application submitted. Loan ID: ${appId}. Documents will upload in the background.`);
 
-            let uploadCount = 0;
-            const uploadedFiles = [];
+                (async () => {
+                    const uploadQueue = [
+                        { id: 'file-project-description', cat: 'project_description' },
+                        { id: 'file-annual-report', cat: 'annual_report' },
+                        { id: 'file-sustainability-report', cat: 'sustainability_report' },
+                        { id: 'file-use-of-proceeds', cat: 'use_of_proceeds' },
+                        { id: 'file-cert-1', cat: 'certification_1' }
+                    ];
 
-            for (const item of uploadQueue) {
-                const fileInput = document.getElementById(item.id);
-                if (fileInput && fileInput.files[0]) {
-                    const uploadData = new FormData();
-                    uploadData.append('file', fileInput.files[0]);
-                    uploadData.append('category', item.cat);
+                    let uploadCount = 0;
+                    const uploadedFiles = [];
 
-                    try {
-                        // Use calculated API_BASE directly for File Uploads
-                        const resp = await fetch(`${API_BASE}/borrower/${appId}/documents`, {
-                            method: 'POST',
-                            body: uploadData
-                        });
+                    for (const item of uploadQueue) {
+                        const fileInput = document.getElementById(item.id);
+                        if (fileInput && fileInput.files[0]) {
+                            const uploadData = new FormData();
+                            uploadData.append('file', fileInput.files[0]);
+                            uploadData.append('category', item.cat);
 
-                        if (resp.ok) {
-                            const json = await resp.json();
-                            uploadCount++;
-                            uploadedFiles.push(json.filename || item.id);
-                        } else {
-                            console.error(`Failed to upload ${item.cat}`, resp.statusText);
+                            try {
+                                const resp = await fetch(`${API_BASE}/borrower/${appId}/documents`, {
+                                    method: 'POST',
+                                    body: uploadData
+                                });
+
+                                if (resp.ok) {
+                                    const json = await resp.json();
+                                    uploadCount++;
+                                    uploadedFiles.push(json.filename || item.id);
+                                } else {
+                                    console.error(`Failed to upload ${item.cat}`, resp.statusText);
+                                }
+                            } catch (e) {
+                                console.error(`Failed to upload ${item.cat}`, e);
+                            }
                         }
-                    } catch (e) {
-                        console.error(`Failed to upload ${item.cat}`, e);
                     }
-                }
-            }
 
-            const filesMsg = uploadedFiles.length ? `\n\nFiles uploaded:\n- ${uploadedFiles.join('\n- ')}` : '';
-            alert(`✅ Application Submitted! \n\nLoan ID: ${appId} | Documents Uploaded: ${uploadCount}${filesMsg}`);
-            window.navigateTo('dashboard');
+                    const filesMsg = uploadedFiles.length ? `\n\nFiles uploaded:\n- ${uploadedFiles.join('\n- ')}` : '';
+                    alert(`✅ All uploads complete for Loan ID: ${appId}. Documents Uploaded: ${uploadCount}${filesMsg}`);
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = origText;
+                    window.navigateTo('dashboard');
+                })();
+
+            } else {
+                // If creation failed, re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.innerText = origText;
+            }
         }
 
     } catch (err) {

@@ -7,7 +7,7 @@ import logging
 from typing import Dict, List, Any, Tuple
 from dataclasses import dataclass
 
-from app.core.config import settings, REQUIRED_FIELDS, GLP_CATEGORIES
+from app.core.config import settings,  GLP_CATEGORIES
 from app.services.glp_rules import glp_rules_engine, DNSHStatus, RiskLevel
 
 logger = logging.getLogger(__name__)
@@ -72,19 +72,6 @@ class ESGScoringEngine:
         self.weight_glp_alignment = settings.ESG_WEIGHT_GLP_ALIGNMENT
         self.spt_ambition_threshold = settings.SPT_AMBITION_THRESHOLD
     
-    def calculate_completeness_score(self, project_data: Dict[str, Any]) -> Tuple[float, Dict[str, bool]]:
-        field_status = {}
-        present_count = 0
-        for field in REQUIRED_FIELDS:
-            value = project_data.get(field)
-            is_present = value is not None and value != '' and value != 0
-            field_status[field] = is_present
-            if is_present:
-                present_count += 1
-        score = (present_count / len(REQUIRED_FIELDS)) * 100
-        if project_data.get('document_count', 0) > 0:
-            score = min(100, score + 10)
-        return score, field_status
     
     def calculate_verifiability_score(self, claims: List[Dict], evidence: List[Dict]) -> Tuple[float, Dict]:
         if not claims:

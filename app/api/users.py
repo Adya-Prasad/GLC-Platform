@@ -251,8 +251,23 @@ async def upload_document(loan_id: int, file: UploadFile = File(...), category: 
         raw['supporting_documents'] = supp
         loan_app.raw_application_json = raw
         db.commit()
-    except Exception:
-        pass
+        db.refresh(loan_app)
+
+        # Persist updated raw JSON to disk so files and questionnaire are reflected in application_data.json
+        try:
+            save_application_json(loan_id_str, loan_app.raw_application_json)
+        except Exception as e:
+            # Log the failure to persist JSON
+            try:
+                log_audit_action(db, "Document", document.id, "save_application_json_failed", current_user.id, {"error": str(e), "loan_id": loan_id_str})
+            except Exception:
+                pass
+    except Exception as e:
+        # Log update errors for easier debugging
+        try:
+            log_audit_action(db, "Document", document.id, "update_raw_json_failed", current_user.id, {"error": str(e), "loan_id": loan_id})
+        except Exception:
+            pass
 
     log_audit_action(db, "Document", document.id, "upload", current_user.id, {"filename": standardized_name, "loan_id": loan_id, "category": category})
 
