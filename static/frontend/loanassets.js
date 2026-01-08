@@ -1,4 +1,5 @@
 import { apiCall, getCurrentUser, showModal, API_BASE } from './utils.js';
+import './document_viewer.js';
 
 export async function renderLoanAssets() {
     const user = getCurrentUser();
@@ -21,7 +22,8 @@ export async function renderLoanAssets() {
     for (const a of apps) {
         let docs = [];
         try {
-            docs = await apiCall(`/borrower/${a.id}/documents`);
+            const docEndpoint = isLender ? `/lender/application/${a.id}/documents` : `/borrower/${a.id}/documents`;
+            docs = await apiCall(docEndpoint);
         } catch (e) {
             docs = [];
         }
@@ -34,8 +36,8 @@ export async function renderLoanAssets() {
                         <span class="text-xs text-gray-700">${d.file_type || 'file'}</span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="window.open(API_BASE + '/borrower/document/${d.id}/view','_blank')" title="View" class="p-2 rounded-md hover:bg-gray-100"><svg viewBox="0 0 24 24" class="w-5 h-5 text-fuchsia-400" fill="none"><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" fill="currentColor"/><path d="M21.894 11.553C19.736 7.236 15.904 5 12 5c-3.903 0-7.736 2.236-9.894 6.553a1 1 0 0 0 0 .894C4.264 16.764 8.096 19 12 19c3.903 0 7.736-2.236 9.894-6.553a1 1 0 0 0 0-.894zM12 17c-2.969 0-6.002-1.62-7.87-5C5.998 8.62 9.03 7 12 7c2.969 0 6.002 1.62 7.87 5-1.868 3.38-4.901 5-7.87 5z" fill="currentColor"/></svg></button>
-                        <a href="${API_BASE}/borrower/document/${d.id}/download" title="Download" class="p-2 rounded-md hover:bg-gray-100"><svg class="w-5 h-5 text-violet-400" viewBox="0 0 24 24" fill="none"><path d="M12 2a1 1 0 0 1 1 1v10.586l2.293-2.293a1 1 0 0 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 1 1 1.414-1.414L11 13.586V3a1 1 0 0 1 1-1zM5 17a1 1 0 0 1 1 1v2h12v-2a1 1 0 1 1 2 0v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a1 1 0 0 1 1-1z" fill="currentColor"/></svg></a>
+                        <button data-url="${API_BASE}/${isLender ? 'lender' : 'borrower'}/document/${d.id}/view" data-type="${d.file_type || 'pdf'}" data-title="${d.filename}" title="View" class="view-doc-btn p-2 rounded-md hover:bg-gray-100"><svg viewBox="0 0 24 24" class="w-5 h-5 text-fuchsia-400" fill="none"><path d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" fill="currentColor"/><path d="M21.894 11.553C19.736 7.236 15.904 5 12 5c-3.903 0-7.736 2.236-9.894 6.553a1 1 0 0 0 0 .894C4.264 16.764 8.096 19 12 19c3.903 0 7.736-2.236 9.894-6.553a1 1 0 0 0 0-.894zM12 17c-2.969 0-6.002-1.62-7.87-5C5.998 8.62 9.03 7 12 7c2.969 0 6.002 1.62 7.87 5-1.868 3.38-4.901 5-7.87 5z" fill="currentColor"/></svg></button>
+                        <a href="${API_BASE}/${isLender ? 'lender' : 'borrower'}/document/${d.id}/download" title="Download" class="p-2 rounded-md hover:bg-gray-100"><svg class="w-5 h-5 text-violet-400" viewBox="0 0 24 24" fill="none"><path d="M12 2a1 1 0 0 1 1 1v10.586l2.293-2.293a1 1 0 0 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 1 1 1.414-1.414L11 13.586V3a1 1 0 0 1 1-1zM5 17a1 1 0 0 1 1 1v2h12v-2a1 1 0 1 1 2 0v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2a1 1 0 0 1 1-1z" fill="currentColor"/></svg></a>
                         <button onclick="navigator.clipboard.writeText(window.location.origin + '/downloads/${a.loan_id || `LOAN_${a.id}`}/' + encodeURIComponent('${d.filename}')) && alert('Share URL copied to clipboard')" title="Share" class="p-2 rounded-md hover:bg-gray-100"><svg fill="currentColor" class="w-5 h-5 text-indigo-400" viewBox="0 0 52 52">
                         <path d="m48.5 30h-3c-0.8 0-1.5 0.7-1.5 1.5v11c0 0.8-0.7 1.5-1.5 1.5h-33c-0.8 0-1.5-0.7-1.5-1.5v-21c0-0.8 0.7-1.5 1.5-1.5h4c0.8 0 1.5-0.7 1.5-1.5v-3c0-0.8-0.7-1.5-1.5-1.5h-7.5c-2.2 0-4 1.8-4 4v28c0 2.2 1.8 4 4 4h40c2.2 0 4-1.8 4-4v-14.5c0-0.8-0.7-1.5-1.5-1.5z m-14.5-16c-10 0-19.1 8.9-19.9 19.4-0.1 0.8 0.6 1.6 1.5 1.6h3c0.8 0 1.4-0.6 1.5-1.3 0.7-7.5 7.1-13.7 14.9-13.7h1.6c0.9 0 1.3 1.1 0.7 1.7l-5.5 5.6c-0.6 0.6-0.6 1.5 0 2.1l2.1 2.1c0.6 0.6 1.5 0.6 2.1 0l13.6-13.5c0.6-0.6 0.6-1.5 0-2.1l-13.5-13.5c-0.6-0.6-1.5-0.6-2.1 0l-2.1 2.1c-0.6 0.6-0.7 1.5-0.1 2.1l5.6 5.6c0.6 0.6 0.2 1.7-0.7 1.7l-2.7 0.1z"></path></svg></button>
                     </div>
@@ -47,7 +49,7 @@ export async function renderLoanAssets() {
             <div class="custom-bg mt-4 rounded-lg border bg-white p-3 shadow-sm">
                 <div class="flex align-middle justify-between border-b pb-2 border-[color:var(--border-color)]">
                     <span class="text-[14px] font-bold text-green-800">${a.loan_id || `LOAN-${a.id}`} : ${a.project_name}</span>
-                    <button class="flex px-2 py-1 btn-second text-[13px] flex align-middle"><svg fill="currentColor" class="w-5 h-5"viewBox="0 0 24 24"><path d="M8.71,7.71,11,5.41V15a1,1,0,0,0,2,0V5.41l2.29,2.3a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.42l-4-4a1,1,0,0,0-.33-.21,1,1,0,0,0-.76,0,1,1,0,0,0-.33.21l-4,4A1,1,0,1,0,8.71,7.71ZM21,12a1,1,0,0,0-1,1v6a1,1,0,0,1-1,1H5a1,1,0,0,1-1-1V13a1,1,0,0,0-2,0v6a3,3,0,0,0,3,3H19a3,3,0,0,0,3-3V13A1,1,0,0,0,21,12Z"/></svg>Upload</button>
+                    <button class="flex px-2 py-1 btn-second text-[13px] flex align-middle"><svg fill="currentColor" viewBox="0 0 24 24" class="w-4 h-4"><path d="M22,13v7a1,1,0,0,1-1,1H3a1,1,0,0,1-1-1V13a1,1,0,0,1,2,0v6H20V13a1,1,0,0,1,2,0ZM12,3a1,1,0,0,0-1,1V8H7a1,1,0,0,0,0,2h4v4a1,1,0,0,0,2,0V10h4a1,1,0,0,0,0-2H13V4A1,1,0,0,0,12,3Z"></path></svg>Upload</button>
                 </div>
                 <div class="space-y-0">
                     ${docsHtml}
@@ -72,18 +74,22 @@ export async function renderLoanAssets() {
 // View assets modal
 window.viewLoanAssets = async function (e, loanId) {
     if (e) e.stopPropagation();
+    const user = getCurrentUser();
+    const isLender = user?.role === 'lender';
+
     try {
-        const docs = await apiCall(`/borrower/${loanId}/documents`);
-        const app = await apiCall(`/borrower/application/${loanId}`);
+        const docs = await apiCall(isLender ? `/lender/application/${loanId}/documents` : `/borrower/${loanId}/documents`);
+        const app = await apiCall(isLender ? `/lender/application/${loanId}` : `/borrower/application/${loanId}`);
+        const appData = isLender ? app.loan_app : app; // Adjust structure if lender API returns nested object
 
         const docsHtml = (docs && docs.length > 0)
             ? docs.map(d => `
-                <li class="py-2 border-b"><a href="/downloads/${app.loan_id}/${d.filename}" target="_blank" class="text-[14px] text-green-700 font-medium">${d.filename}</a> <span class="text-xs text-gray-400">(${d.file_type || 'file'})</span></li>
+                <li class="py-2 border-b"><button data-url="/downloads/${app.loan_id}/${d.filename}" data-type="${d.file_type || 'pdf'}" data-title="${d.filename}" class="view-doc-btn text-[14px] text-green-700 font-medium hover:underline text-left">${d.filename}</button> <span class="text-xs text-gray-400">(${d.file_type || 'file'})</span></li>
             `).join('')
             : '<li class="py-4 text-gray-500">No documents uploaded for this loan.</li>';
 
-        const rawJsonBody = app.raw_application_json ? `<pre class="overflow-auto text-xs bg-gray-50 p-3 rounded">${JSON.stringify(app.raw_application_json, null, 2)}</pre>` : '<p class="text-gray-500">No application data available.</p>';
-        const appJsonDownload = `<a href="/downloads/${app.loan_id}/application_data.json" target="_blank" class="inline-block mb-2 text-sm text-green-700 hover:underline">Download application JSON</a>`;
+        const rawJsonBody = appData.raw_application_json ? `<pre class="overflow-auto text-xs bg-gray-50 p-3 rounded">${JSON.stringify(appData.raw_application_json, null, 2)}</pre>` : '<p class="text-gray-500">No application data available.</p>';
+        const appJsonDownload = `<a href="/downloads/${appData.loan_id}/application_data.json" target="_blank" class="inline-block mb-2 text-sm text-green-700 hover:underline">Download application JSON</a>`;
 
         const content = `
             <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -101,7 +107,7 @@ window.viewLoanAssets = async function (e, loanId) {
             </div>
         `;
 
-        showModal(`Loan Assets - ${app.loan_id}`, content);
+        showModal(`Loan Assets - ${appData.loan_id}`, content);
     } catch (err) {
         alert('Failed to load loan assets: ' + err.message);
     }

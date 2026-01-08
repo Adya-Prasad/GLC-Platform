@@ -119,21 +119,10 @@ class LoanApplication(Base):
     
     # Organization Snapshot
     org_name = Column(String(255), default="none")  # Snapshot of org name at time of application
-
-    # Additional organization fields aligned with frontend JSON
-    organization_name = Column(String(500))
     tax_id = Column(String(100))
     credit_score = Column(Integer)
-    headquarters_location = Column(String(255))
-
-    # Project aliases (mirror JSON names)
-    project_title = Column(String(500))
-    project_sector = Column(String(255))
 
     # Use of proceeds and GHG specific columns
-    use_of_proceeds_description = Column(Text, default="none")
-    ghg_target_reduction = Column(Integer)
-    ghg_baseline_year = Column(Integer)
     
     # Contact & Personal
     project_pin_code = Column(String(20), default="none")
@@ -146,7 +135,6 @@ class LoanApplication(Base):
     
     # Project & Env Details
     reporting_frequency = Column(String(50), default="Annual")
-    installed_capacity = Column(String(50), default="none")
     target_reduction = Column(String(50), default="none")
     kpi_metrics = Column(JSON, default=[])
 

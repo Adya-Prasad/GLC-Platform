@@ -1,0 +1,60 @@
+{
+    "organization_details": {
+        "organization_name": "EcoBuild Cement Ltd.",
+        "contact_email": "sustainability@ecobuildcement.com",
+        "contact_phone": "+91-98765-43210",
+        "tax_id": "GSTIN27ABCDE1234F1Z5",
+        "Credit Score": 750,
+        "headquarters_location": "Gujarat, India",
+        "website": "https://www.ecobuildcement.com",
+        "annual_revenue": 500000000
+    },
+    "project_information": {
+        "project_title": "Low-Carbon Cement Production Upgrade – Phase I",
+        "project_sector": "Cement Manufacturing",
+        "project_location": "Kutch District, Gujarat",
+        "project_pin_code": "370201",
+        "project_type": "Existing Project (Brownfield)",
+        "reporting_frequency": "Annual",
+        "existing_loans": "Yes",
+        "planned_start_date": "2026-04-01",
+        "amount_requested": 42000000,
+        "currency": "EUR",
+        "project_description": "Upgrade of existing cement manufacturing line to reduce clinker ratio, install waste heat recovery systems, and switch to blended cement production using fly ash and slag to significantly reduce Scope 1 emissions."
+    },
+    "green_qualification_and_kpis": {
+        "use_of_proceeds_description": "Loan proceeds will be used exclusively for installation of waste heat recovery units, retrofitting kilns to support blended cement production, procurement of energy-efficient grinding equipment, and digital monitoring systems to track emissions performance.",
+        "scope1_tco2": 0.00,
+        "scope2_tco2": 0.001,
+        "scope3_tco2": 7000,
+        "ghg_target_reduction": 80,
+        "ghg_baseline_year": 2027,
+        "selected_kpis": [
+            "CO2 intensity per tonne of cement",
+            "Clinker-to-cement ratio",
+            "Waste heat recovery energy generated (MWh)",
+            "Percentage of alternative fuels used",
+            "Energy consumption per tonne (kWh/t)"
+        ]
+    },
+    "esg_compliance_questionnaire": {
+        "1_Does_the_project_have_clear_environmental_benefits?": "Medium",
+        "2_Is_data_available_to_measure_and_report_impact?": "Partial",
+        "3_Compliance_with_local_environmental_regulations?": "In Progress",
+        "4_Any_controversy_or_negative_social_impact_risks?": "Minor/Mitigated",
+        "5_Are_you_implementing_any_research_and_development_(R&D)_for_low-carbon_technologies_or_practices?": "Yes",
+        "6_Have_you_signed_a_Union_agreement?": "No",
+        "7_Are_you_adapting_GHG_Protocol?": "Yes",
+        "8_Has_the_organization_published_climate-related_disclosures_or_reporting?": "Yes",
+        "9_Are_there_clear,_time-bound_emissions_reduction_targets_aligned_with_climate_pathways?": "No",
+        "10_Does_the_company_have_plans_to_phase_out_or_avoid_new_high-carbon_infrastructure?": "Yes",
+        "11_Does_the_project_involve_long-lived_high-carbon_assets_that_could_inhibit_future_decarbonisation?": "No"
+    },
+    "supporting_documents": {
+        "project-description": "project_solarpanel_report.pdf",
+        "annual_report": "org_anual_report_2025_end.pdf",
+        "sustainability_report": "project_solarpanel_sustaniable_env_report.docx",
+        "use_of_proceeds": "solarpanel_loan_breakdown.pdf",
+        "certification_1": "ghg_association_approval.pdf"
+    }
+}

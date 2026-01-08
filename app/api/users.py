@@ -63,44 +63,68 @@ def ensure_borrower_profile(db: Session, current_user: User, application) -> Bor
 
 
 def build_raw_application_json(application) -> Dict[str, Any]:
-    scope1 = application.scope1_tco2 or 0.0
-    scope2 = application.scope2_tco2 or 0.0
-    scope3 = application.scope3_tco2 or 0.0
+    """Builds the raw application JSON with a structure matching the user's template."""
+
+    def get_optional(value):
+        """Returns None if value is empty, otherwise the value."""
+        if value in [None, "", []]:
+            return None
+        return value
+
+    # Map frontend short keys to descriptive keys from the user's template
+    q_map = {
+        "q_env_benefits": "1_Does_the_project_have_clear_environmental_benefits?",
+        "q_data_available": "2_Is_data_available_to_measure_and_report_impact?",
+        "q_regulatory_compliance": "3_Compliance_with_local_environmental_regulations?",
+        "q_social_risk": "4_Any_controversy_or_negative_social_impact_risks?",
+        "q_rd_low_carbon": "5_Are_you_implementing_any_research_and_development_(R&D)_for_low-carbon_technologies_or_practices?",
+        "q_union_agreement": "6_Have_you_signed_a_Union_agreement?",
+        "q_adopt_ghg_protocol": "7_Are_you_adapting_GHG_Protocol?",
+        "q_published_climate_disclosures": "8_Has_the_organization_published_climate-related_disclosures_or_reporting?",
+        "q_timebound_targets": "9_Are_there_clear,_time-bound_emissions_reduction_targets_aligned_with_climate_pathways?",
+        "q_phaseout_highcarbon": "10_Does_the_company_have_plans_to_phase_out_or_avoid_new_high-carbon_infrastructure?",
+        "q_long_lived_highcarbon_assets": "11_Does_the_project_involve_long-lived_high-carbon_assets_that_could_inhibit_future_decarbonisation?",
+    }
+    
+    questionnaire = application.questionnaire_data or {}
+    full_questionnaire_data = {q_map.get(k, k): v for k, v in questionnaire.items()}
 
     raw_json = {
         "organization_details": {
-            "organization_name": application.org_name,
-            "contact_email": get_or_default(application.contact_email),
-            "contact_phone": get_or_default(application.contact_phone),
-            "tax_id": application.org_gst,
-            "Credit Score": application.credit_score,
-            "headquarters_location": get_or_default(application.location),
-            "website": get_or_default(application.website),
-            "annual_revenue": application.annual_revenue
+            "organization_name": get_optional(application.org_name),
+            "contact_email": get_optional(application.contact_email),
+            "contact_phone": get_optional(application.contact_phone),
+            "tax_id": get_optional(application.org_gst),
+            "Credit Score": get_optional(application.credit_score),
+            "headquarters_location": get_optional(application.location),
+            "website": get_optional(application.website),
+            "annual_revenue": application.annual_revenue or None,
         },
         "project_information": {
-            "project_title": application.project_name,
-            "project_sector": application.sector,
-            "project_location": get_or_default(application.project_location),
-            "project_pin_code": get_or_default(application.project_pin_code),
-            "project_type": get_or_default(application.project_type, "New Project"),
-            "reporting_frequency": get_or_default(application.reporting_frequency, "Annual"),
+            "project_title": get_optional(application.project_name),
+            "project_sector": get_optional(application.sector),
+            "project_location": get_optional(application.project_location),
+            "project_pin_code": get_optional(application.project_pin_code),
+            "project_type": get_optional(application.project_type),
+            "reporting_frequency": get_optional(application.reporting_frequency),
             "existing_loans": "Yes" if application.has_existing_loan else "No",
-            "planned_start_date": get_or_default(application.planned_start_date),
-            "amount_requested": application.amount_requested,
-            "currency": application.currency,
-            "project_description": get_or_default(application.project_description, get_or_default(application.use_of_proceeds))
+            "planned_start_date": get_optional(str(application.planned_start_date.date()) if hasattr(application.planned_start_date, 'date') else application.planned_start_date),
+            "amount_requested": application.amount_requested or None,
+            "currency": get_optional(application.currency),
+            "project_description": get_optional(application.project_description),
+            "shareholder_entities": application.shareholder_entities,
+            "shareholders_data": getattr(application, "shareholders_data", []),
         },
         "green_qualification_and_kpis": {
-            "use_of_proceeds_description": get_or_default(application.use_of_proceeds),
-            "scope1_tco2": scope1,
-            "scope2_tco2": scope2,
-            "scope3_tco2": scope3,
-            "ghg_target_reduction": application.ghg_target_reduction or application.target_reduction,
-            "ghg_baseline_year": application.ghg_baseline_year or application.baseline_year,
-            "selected_kpis": application.kpi_metrics if application.kpi_metrics else []
+            "use_of_proceeds_description": get_optional(application.use_of_proceeds),
+            "scope1_tco2": application.scope1_tco2 or 0.0,
+            "scope2_tco2": application.scope2_tco2 or 0.0,
+            "scope3_tco2": application.scope3_tco2 or 0.0,
+            "ghg_target_reduction": get_optional(application.target_reduction),
+            "ghg_baseline_year": get_optional(application.baseline_year),
+            "selected_kpis": application.kpi_metrics or [],
         },
-        "esg_compliance_questionnaire": application.questionnaire_data or {},
+        "esg_compliance_questionnaire": full_questionnaire_data,
         "supporting_documents": {}
     }
     return raw_json
@@ -147,13 +171,14 @@ def create_application(db: Session, application, current_user: User) -> LoanAppl
         additional_info=get_or_default(application.additional_info),
         cloud_doc_url=get_or_default(application.cloud_doc_url),
         org_name=application.org_name,
+        tax_id=application.org_gst,
+        credit_score=application.credit_score,
         project_pin_code=get_or_default(application.project_pin_code),
         contact_email=get_or_default(application.contact_email),
         contact_phone=get_or_default(application.contact_phone),
         has_existing_loan=application.has_existing_loan,
         planned_start_date=planned_start,
         reporting_frequency=get_or_default(application.reporting_frequency, "Annual"),
-        installed_capacity=get_or_default(application.installed_capacity),
         target_reduction=get_or_default(application.target_reduction),
         kpi_metrics=application.kpi_metrics if application.kpi_metrics else [],
         consent_agreed=application.consent_agreed,
@@ -167,23 +192,24 @@ def create_application(db: Session, application, current_user: User) -> LoanAppl
     db.refresh(loan_app)
 
     try:
-        save_application_json(loan_id_str, raw_json)
-    except Exception:
-        pass
-
-    try:
-        loan_app.raw_application_json = raw_json
-        loan_app.organization_name = application.org_name
-        loan_app.tax_id = application.org_gst
-        loan_app.credit_score = application.credit_score
-        loan_app.headquarters_location = application.location
-        loan_app.project_title = application.project_name
-        loan_app.project_sector = application.sector
-        loan_app.use_of_proceeds_description = application.use_of_proceeds
-        loan_app.ghg_target_reduction = application.ghg_target_reduction
-        loan_app.ghg_baseline_year = application.ghg_baseline_year
+        json_path = save_application_json(loan_id_str, raw_json)
+        # Create a Document record for the generated application_data.json
+        json_doc = Document(
+            loan_id=loan_app.id,
+            uploader_id=current_user.id,
+            filename="application_data.json",
+            filepath=json_path,
+            file_type='application/json',
+            doc_category='application_metadata',
+            file_size=get_file_size(json_path),
+            extraction_status="n/a",
+        )
+        db.add(json_doc)
         db.commit()
+        db.refresh(json_doc)
     except Exception:
+        # If this fails, don't prevent the API from returning successfully
+        # but log it for debugging.
         pass
 
     try:
@@ -378,6 +404,7 @@ async def list_applications(status: Optional[str] = None, sector: Optional[str] 
     for app in applications:
         result.append(LoanApplicationListItem(
             id=app.id,
+            loan_id=app.loan_id,
             project_name=app.project_name,
             borrower_name=app.borrower.user.name if app.borrower and app.borrower.user else "none",
             org_name=app.org_name or (app.borrower.org_name if app.borrower else "none"),
@@ -388,6 +415,7 @@ async def list_applications(status: Optional[str] = None, sector: Optional[str] 
             esg_score=app.esg_score,
             glp_eligibility=app.glp_eligibility,
             planned_start_date=(app.planned_start_date.date().isoformat() if hasattr(app.planned_start_date, 'date') else (app.planned_start_date if isinstance(app.planned_start_date, str) else None)),
+            shareholder_entities=app.shareholder_entities,
             created_at=app.created_at
         ))
     return result
@@ -424,6 +452,41 @@ async def get_application_detail(loan_id: int, db: Session = Depends(get_db), cu
     dnsh_results = dnsh_status.get('results', {})
     dnsh_checks = [{"criterion": k, "status": v.get('status', 'unclear'), "evidence": v.get('evidence'), "notes": v.get('notes')} for k, v in dnsh_results.items()]
     return {"loan_app": {"id": loan_app.id, "borrower_id": loan_app.borrower_id, "project_name": loan_app.project_name, "sector": loan_app.sector, "location": loan_app.location, "project_type": loan_app.project_type, "amount_requested": loan_app.amount_requested, "currency": loan_app.currency, "use_of_proceeds": loan_app.use_of_proceeds, "scope1_tco2": loan_app.scope1_tco2, "scope2_tco2": loan_app.scope2_tco2, "scope3_tco2": loan_app.scope3_tco2, "total_tco2": loan_app.total_tco2, "baseline_year": loan_app.baseline_year, "esg_score": loan_app.esg_score, "glp_eligibility": loan_app.glp_eligibility, "glp_category": loan_app.glp_category, "carbon_lockin_risk": loan_app.carbon_lockin_risk, "status": loan_app.status.value if loan_app.status else None, "created_at": loan_app.created_at.isoformat(), "updated_at": loan_app.updated_at.isoformat() if loan_app.updated_at else None}, "borrower": {"id": borrower.id if borrower else None, "org_name": borrower.org_name if borrower else None, "industry": borrower.industry if borrower else None, "country": borrower.country if borrower else None}, "documents": [{"id": d.id, "filename": d.filename, "uploaded_at": d.uploaded_at.isoformat()} for d in documents], "kpis": [{"id": k.id, "kpi_name": k.kpi_name, "baseline_value": k.baseline_value, "spt_target": k.spt_target, "target_year": k.target_year} for k in kpis], "parsed_fields": parsed_fields, "verification": verification_summary, "esg_score": loan_app.esg_score or 0, "dnsh_checks": dnsh_checks, "carbon_lockin_risk": loan_app.carbon_lockin_risk or "unknown"}
+
+
+@router.get("/lender/application/{loan_id}/documents", response_model=List[DocumentResponse])
+async def get_lender_application_documents(loan_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not current_user:
+        current_user = MockAuth.quick_login(db, "lender")
+    documents = db.query(Document).filter(Document.loan_id == loan_id).all()
+    return documents
+
+
+@router.get("/lender/document/{doc_id}/download")
+async def download_lender_document(doc_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not current_user:
+        current_user = MockAuth.quick_login(db, "lender")
+    document = db.query(Document).filter(Document.id == doc_id).first()
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if not os.path.exists(document.filepath):
+        raise HTTPException(status_code=404, detail="File not found on server")
+    return FileResponse(path=document.filepath, filename=document.filename, media_type='application/octet-stream')
+
+
+@router.get("/lender/document/{doc_id}/view")
+async def view_lender_document_content(doc_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not current_user:
+        current_user = MockAuth.quick_login(db, "lender")
+    document = db.query(Document).filter(Document.id == doc_id).first()
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if not os.path.exists(document.filepath):
+        raise HTTPException(status_code=404, detail="File not found on server")
+    media_map = {'.pdf': 'application/pdf', '.json': 'application/json', '.txt': 'text/plain', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'}
+    ext = os.path.splitext(document.filename)[1].lower()
+    media_type = media_map.get(ext, 'application/octet-stream')
+    return FileResponse(path=document.filepath, media_type=media_type)
 
 
 @router.post("/lender/application/{loan_id}/verify", response_model=VerificationResponse)

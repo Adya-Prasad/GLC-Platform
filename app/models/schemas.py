@@ -86,10 +86,11 @@ class LoanApplicationCreate(BaseModel):
     contact_email: Optional[str] = Field(None, description="Contact email")
     contact_phone: Optional[str] = Field(None, description="Contact phone number")
     org_gst: Optional[str] = Field(None, description="GST / Tax ID")
-    credit_score: Optional[str] = Field(None, description="Credit Score")
     location: Optional[str] = Field(None, description="Headquarters location")
     website: Optional[str] = Field(None, description="Website URL")
-    
+    annual_revenue: Optional[float] = Field(None, description="Organization annual revenue")
+    credit_score: Optional[int] = Field(None, description="Organization credit score")
+
     # Project Information
     project_name: str = Field(..., description="Project title")
     sector: str = Field(..., description="Project sector")
@@ -99,27 +100,17 @@ class LoanApplicationCreate(BaseModel):
     reporting_frequency: Optional[str] = Field(None, description="Annual, Half-yearly, Quarterly")
     has_existing_loan: bool = Field(default=False, description="Does borrower have existing loans?")
     planned_start_date: str = Field(..., description="Planned project start date (YYYY-MM-DD)")
-    shareholder_entities: int = Field(..., ge=0, description="Number of shareholder entities involved in the project")
+    shareholder_entities: Optional[int] = Field(None, ge=0, description="Number of shareholder entities involved in the project")
     amount_requested: float = Field(..., gt=0, description="Loan amount requested")
     currency: str = Field(default="USD", description="Currency code")
     project_description: str = Field(..., description="Detailed project description")
-    annual_revenue: Optional[float] = Field(None, description="Organization annual revenue")
-    tax_id: Optional[str] = Field(None, description="Organization tax identifier (e.g., GSTIN)")
-    credit_score: Optional[int] = Field(None, description="Organization credit score")
-    headquarters_location: Optional[str] = Field(None, description="Headquarters location")
-
-    # Project aliases matching incoming JSON
-    project_title: Optional[str] = Field(None, description="Project title (alias)")
-    project_sector: Optional[str] = Field(None, description="Project sector (alias)")
+    shareholders_data: Optional[List[Dict[str, Any]]] = Field(default=[], description="List of shareholder names and ownership percentages")
 
     # Green KPIs
     use_of_proceeds: str = Field(..., description="Description of how funds will be used")
-    ghg_target_reduction: Optional[int] = Field(None, description="GHG target reduction percentage")
-    ghg_baseline_year: Optional[int] = Field(None, description="GHG baseline year")
     scope1_tco2: Optional[float] = Field(None, ge=0, description="Scope 1 emissions in tCO2")
     scope2_tco2: Optional[float] = Field(None, ge=0, description="Scope 2 emissions in tCO2")
     scope3_tco2: Optional[float] = Field(None, ge=0, description="Scope 3 emissions in tCO2")
-    installed_capacity: Optional[str] = Field(None, description="MW capacity")
     target_reduction: Optional[str] = Field(None, description="% reduction")
     baseline_year: Optional[int] = Field(None, description="Baseline year for emissions")
     kpi_metrics: List[str] = Field(default=[], description="Selected KPIs")
@@ -149,14 +140,10 @@ class LoanApplicationResponse(BaseModel):
     amount_requested: float
     currency: str
     use_of_proceeds: Optional[str]
-    use_of_proceeds_description: Optional[str]
     scope1_tco2: Optional[float]
     scope2_tco2: Optional[float]
     scope3_tco2: Optional[float]
     total_tco2: Optional[float]
-    baseline_year: Optional[int]
-    ghg_target_reduction: Optional[int]
-    ghg_baseline_year: Optional[int]
     
     project_pin_code: Optional[str]
     contact_email: Optional[str]
@@ -172,8 +159,8 @@ class LoanApplicationResponse(BaseModel):
     shareholder_entities: Optional[int] = 0
     
     reporting_frequency: Optional[str]
-    installed_capacity: Optional[str]
     target_reduction: Optional[str]
+    baseline_year: Optional[int]
     kpi_metrics: Optional[List[str]]
     
     questionnaire_data: Optional[Dict[str, Any]]

@@ -4,7 +4,8 @@ const DOC_PAGES = [
     { id: 'signup_page.md', label: 'Signup & Login' },
     { id: 'dashboard.md', label: 'Dashboard Guide' },
     { id: 'loan_application.md', label: 'Loan Applications' },
-    { id: 'report.md', label: 'ESG Reports' }
+    { id: 'report.md', label: 'ESG Reports' },
+    { id: 'faq.md', label:'FAQs'}
 ];
 
 let activeDoc = 'signup_page.md';

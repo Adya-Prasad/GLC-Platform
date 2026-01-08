@@ -60,7 +60,6 @@ settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 settings.FAISS_INDEX_DIR.mkdir(parents=True, exist_ok=True)
 settings.REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
-
 # GLP Categories as per LMA Green Loan Principles
 GLP_CATEGORIES = [
     "Renewable Energy",
@@ -105,14 +104,35 @@ CARBON_LOCKIN_INDICATORS = [
     "gas pipeline",
     "LNG terminal",
 ]
-
-# Sectors requiring special scrutiny
 HIGH_RISK_SECTORS = [
-    "Oil & Gas",
-    "Coal Mining",
+    "Fossil fuel utilities",
+    "Oil & gas",
+    "Mining and quarrying",
+    "Chemicals",
+    "Agriculture, forestry, and fishing",
+    "Transportation and storage",
+    "Construction materials",
     "Heavy Industry",
     "Aviation",
-    "Shipping",
+]
+
+MEDIUM_RISK_SECTORS = [
+    "Construction",
+    "Wholesale and retail trade",
+    "Real estate activities",
+    "Manufacturing of machinery and equipment",
+    "Water supply, sewerage and waste management",
+    "Food and beverage",
+    "Healthcare services",
+]
+
+LOW_RISK_SECTORS = [
+    "Renewable energy",
+    "Financial and insurance activities",
+    "Healthcare and social assistance",
+    "Education services",
+    "Professional, scientific and technical services",
+    "Information technology services",
 ]
 
 
