@@ -25,7 +25,6 @@ The sidebar provides access to all platform features:
 - **New Application**: Start a new green loan request.
 - **My Applications**: View detailed status of all your submissions.
 - **Documents**: Manage your uploaded files and evidence.
-- **Reports**: Generate and view ESG compliance reports.
 - **Docs & Learn**: Access help guides and learning resources.
 
 ## 4. Recent Activity

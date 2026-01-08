@@ -115,8 +115,10 @@ class LoanApplicationCreate(BaseModel):
     baseline_year: Optional[int] = Field(None, description="Baseline year for emissions")
     kpi_metrics: List[str] = Field(default=[], description="Selected KPIs")
     
+    # Loan Tenor
+    loan_tenor: Optional[int] = Field(None, ge=1, description="Loan tenor in years")
+    
     # Supporting Docs
-    additional_info: Optional[str] = Field(None, description="Additional project information")
     cloud_doc_url: Optional[str] = Field(None, description="Cloud document URL")
 
     # ESG Questionnaire & Consent
@@ -162,6 +164,7 @@ class LoanApplicationResponse(BaseModel):
     target_reduction: Optional[str]
     baseline_year: Optional[int]
     kpi_metrics: Optional[List[str]]
+    loan_tenor: Optional[int]
     
     questionnaire_data: Optional[Dict[str, Any]]
     cloud_doc_url: Optional[str]

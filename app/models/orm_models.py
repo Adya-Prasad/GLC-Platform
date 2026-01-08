@@ -98,8 +98,10 @@ class LoanApplication(Base):
     total_tco2 = Column(Float, default=0.0)
     baseline_year = Column(Integer)
     
+    # Loan Tenor
+    loan_tenor = Column(Integer, nullable=True)  # Loan tenor in years
+    
     # Additional data
-    additional_info = Column(Text, default="none")
     cloud_doc_url = Column(String(500), default="none")  # Cloud document URL
     
     # ESG and compliance scores

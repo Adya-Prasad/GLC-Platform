@@ -1,57 +1,63 @@
-import { apiCall, getCurrentUser, API_BASE } from './utils.js';
+import { apiCall, getCurrentUser, API_BASE } from "./utils.js";
 
 // Save/load draft helpers (attached to window so they are available in the form)
 window.saveApplicationProgress = function () {
-    const form = document.getElementById('loan-form');
-    if (!form) return;
-    const data = Object.fromEntries(new FormData(form));
-    localStorage.setItem('loan_app_draft', JSON.stringify(data));
-    alert('Progress saved locally. You can resume later.');
+  const form = document.getElementById("loan-form");
+  if (!form) return;
+  const data = Object.fromEntries(new FormData(form));
+  localStorage.setItem("loan_app_draft", JSON.stringify(data));
+  alert("Progress saved locally. You can resume later.");
 };
 
 window.loadDraft = function () {
-    try {
-        const saved = localStorage.getItem('loan_app_draft');
-        if (saved) {
-            const data = JSON.parse(saved);
-            const form = document.getElementById('loan-form');
-            if (!form) return;
-            Object.keys(data).forEach(key => {
-                const el = form.elements[key];
-                if (el) {
-                    if (el instanceof RadioNodeList) el.value = data[key];
-                    else if (el.type === 'checkbox') el.checked = true;
-                    else if (el.type !== 'file') el.value = data[key];
-                }
-            });
-            if (data.shareholder_entities && window.renderShareholderInputs) {
-                window.renderShareholderInputs(data.shareholder_entities);
-                setTimeout(() => {
-                     for (let i = 1; i <= parseInt(data.shareholder_entities, 10); i++) {
-                        if(form.elements[`shareholder_${i}_name`]) form.elements[`shareholder_${i}_name`].value = data[`shareholder_${i}_name`] || '';
-                        if(form.elements[`shareholder_${i}_percentage`]) form.elements[`shareholder_${i}_percentage`].value = data[`shareholder_${i}_percentage`] || '';
-                    }
-                }, 100);
-            }
+  try {
+    const saved = localStorage.getItem("loan_app_draft");
+    if (saved) {
+      const data = JSON.parse(saved);
+      const form = document.getElementById("loan-form");
+      if (!form) return;
+      Object.keys(data).forEach((key) => {
+        const el = form.elements[key];
+        if (el) {
+          if (el instanceof RadioNodeList) el.value = data[key];
+          else if (el.type === "checkbox") el.checked = true;
+          else if (el.type !== "file") el.value = data[key];
         }
-    } catch (e) { console.error("Error loading draft", e); }
+      });
+      if (data.shareholder_entities && window.renderShareholderInputs) {
+        window.renderShareholderInputs(data.shareholder_entities);
+        setTimeout(() => {
+          for (let i = 1; i <= parseInt(data.shareholder_entities, 10); i++) {
+            if (form.elements[`shareholder_${i}_name`])
+              form.elements[`shareholder_${i}_name`].value =
+                data[`shareholder_${i}_name`] || "";
+            if (form.elements[`shareholder_${i}_percentage`])
+              form.elements[`shareholder_${i}_percentage`].value =
+                data[`shareholder_${i}_percentage`] || "";
+          }
+        }, 100);
+      }
+    }
+  } catch (e) {
+    console.error("Error loading draft", e);
+  }
 };
 
-window.renderShareholderInputs = function(count) {
-    const container = document.getElementById('shareholder-details-container');
-    if (!container) return;
-    
-    const form = document.getElementById('loan-form');
-    const existingData = form ? new FormData(form) : new FormData();
+window.renderShareholderInputs = function (count) {
+  const container = document.getElementById("shareholder-details-container");
+  if (!container) return;
 
-    let existingFieldsHTML = '';
-    const num = parseInt(count, 10);
-    
-    if (!isNaN(num) && num > 0) {
-        for (let i = 1; i <= num; i++) {
-            const name = existingData.get(`shareholder_${i}_name`) || '';
-            const percentage = existingData.get(`shareholder_${i}_percentage`) || '';
-            existingFieldsHTML += `
+  const form = document.getElementById("loan-form");
+  const existingData = form ? new FormData(form) : new FormData();
+
+  let existingFieldsHTML = "";
+  const num = parseInt(count, 10);
+
+  if (!isNaN(num) && num > 0) {
+    for (let i = 1; i <= num; i++) {
+      const name = existingData.get(`shareholder_${i}_name`) || "";
+      const percentage = existingData.get(`shareholder_${i}_percentage`) || "";
+      existingFieldsHTML += `
                 <div class="md:col-span-1">
                     <label class="block text-[14px] font-medium text-gray-800 mb-2">Shareholder ${i} Name *</label>
                     <input type="text" name="shareholder_${i}_name" required placeholder="Full legal name" value="${name}" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
@@ -61,16 +67,15 @@ window.renderShareholderInputs = function(count) {
                     <input type="number" step="0.01" min="0" max="100" name="shareholder_${i}_percentage" value="${percentage}" required placeholder="e.g. 25.5" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                 </div>
             `;
-        }
     }
-    container.innerHTML = existingFieldsHTML;
-}
+  }
+  container.innerHTML = existingFieldsHTML;
+};
 
 export function renderApplicationForm() {
-    setTimeout(() => window.loadDraft && window.loadDraft(), 100);
+  setTimeout(() => window.loadDraft && window.loadDraft(), 100);
 
-
-    return `
+  return `
         <div class="max-w-4xl mx-auto space-y-8">
                     <div class="mb-2">
                     <h2 class="text-lg font-bold text-gray-800 text-center">Loan Applicaton Assement Form</h2>
@@ -80,10 +85,11 @@ export function renderApplicationForm() {
                 <form id="loan-form" onsubmit="window.handleApplicationSubmit(event)" class="space-y-10">
                     
                     <section>
-                        <h3 class="text-xl font-semibold text-[var(--green)] mb-6 flex items-center">
+                        <h3 class="text-xl font-semibold text-[var(--green)] mb-1 flex items-center">
                             <span class="bg-green-100 text-[var(--green)] w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">1</span>
-                            Organization / Company Details
+                            Organization  / Company Details
                         </h3>
+                        <p class="text-[15px] text-gray-500 mb-5">To gather parent company context</p>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                             <label class="block text-[14px] font-medium text-gray-800 mb-2">Organization Name *</label>
@@ -100,7 +106,7 @@ export function renderApplicationForm() {
 
                             <!-- Org Details -->
                             <div>
-                                <label class="block text-[14px] font-medium text-gray-800 mb-2">GST / Tax ID (in India)</label>
+                                <label class="block text-[14px] font-medium text-gray-800 mb-2">Tax ID / GST (in India)</label>
                                 <input type="text" name="org_gst" placeholder="Registration number" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                             </div>
                              <div>
@@ -126,12 +132,10 @@ export function renderApplicationForm() {
                     <!-- Section 2: Project Information -->
                     <section>
                         <h3 class="text-xl font-semibold text-[var(--green)] mb-6 flex items-center">
-                            <span class="bg-green-100 text-[var(--green)] w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">2</span>
-                            Project Information
-                        </h3>
+                            <span class="bg-green-100 text-[var(--green)] w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">2</span>Project / Loan Information</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="col-span-2 md:col-span-1">
-                                <label class="block text-[14px] font-medium text-gray-800 mb-2">Project Title *</label>
+                                <label class="block text-[14px] font-medium text-gray-800 mb-2">Project Title / Loan Purpose *</label>
                                 <input type="text" name="project_name" required placeholder="e.g., Solar Farm Phase II" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                             </div>
                             <div class="col-span-2 md:col-span-1">
@@ -208,7 +212,7 @@ export function renderApplicationForm() {
                                 <label class="block text-[14px] font-medium text-gray-800 mb-2">Amount Requested*</label>
                                 <div class="relative">
                                      <span class="absolute left-4 top-3.5 text-gray-500 font-bold">$</span>
-                                    <input type="number" name="amount" required class="w-full pl-8 pr-4 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
+                                    <input type="number" name="amount" required min="5000" class="w-full pl-8 pr-4 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                                 </div>
                             </div>
                             <div>
@@ -219,6 +223,10 @@ export function renderApplicationForm() {
                                     <option value="INR">INR - Indian Rupee</option>
                                     <option value="GBP">GBP - British Pound</option>
                                 </select>
+                            </div>
+                            <div>
+                                <label class="block text-[14px] font-medium text-gray-800 mb-2">Loan Tenor (Years) *</label>
+                                <input type="number" name="loan_tenor" required min="1" placeholder="e.g. 5" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                             </div>
                             </div>
                             <div>
@@ -242,16 +250,16 @@ export function renderApplicationForm() {
 
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                                  <div>
-                                    <label class="block text-[14px] font-medium text-gray-800 mb-2">Scope 1 Emissions (tCO2e) *</label>
-                                    <input type="number" step="0.01" name="scope1_tco2" required placeholder="0.00" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
+                                    <label class="block text-[14px] font-medium text-gray-800 mb-2">Scope 1 Emissions (Kg CO₂e) *</label>
+                                    <input type="number" step="1" name="scope1_tco2" required placeholder="620" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                                 </div>
                                 <div>
-                                    <label class="block text-[14px] font-medium text-gray-800 mb-2">Scope 2 Emissions (tCO2e) *</label>
-                                    <input type="number" step="0.01" name="scope2_tco2" required placeholder="0.00" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
+                                    <label class="block text-[14px] font-medium text-gray-800 mb-2">Scope 2 Emissions (Kg CO₂e) *</label>
+                                    <input type="number" step="1" name="scope2_tco2" required placeholder="100" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                                 </div>
                                 <div>
-                                    <label class="block text-[14px] font-medium text-gray-800 mb-2">Scope 3 Emissions (tCO2e) *</label>
-                                    <input type="number" step="0.01" name="scope3_tco2" required placeholder="0.00" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
+                                    <label class="block text-[14px] font-medium text-gray-800 mb-2">Scope 3 Emissions (Kg CO₂e) *</label>
+                                    <input type="number" step="1" name="scope3_tco2" required placeholder="80" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                                 </div>
                             </div>
                              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -260,7 +268,7 @@ export function renderApplicationForm() {
                                     <input type="text" name="target_reduction" placeholder="e.g. 60" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                                 </div>
                                 <div>
-                                    <label class="block text-[14px] font-medium text-gray-800 mb-2">GHG Baseline Year</label>
+                                    <label class="block text-[14px] font-medium text-gray-800 mb-2">Initiated Baseline Year</label>
                                     <input type="number" name="baseline_year" placeholder="YYYY" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                                 </div>
                             </div>
@@ -494,33 +502,22 @@ export function renderApplicationForm() {
                             <span class="bg-green-100 text-[var(--green)] w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">5</span>Supporting Documents</h3>
                              
                              <div class="mb-6">
-                                <label class="block text-[14px] font-medium text-gray-800 mb-2">Additional Information (Optional)</label>
-                                <textarea name="additional_info" rows="3" placeholder="Any other relevant details..." class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]"></textarea>
-                             </div>
-                             
-                             <div class="mb-6">
                                 <label class="block text-[14px] font-medium text-gray-800 mb-2">Cloud Document URL (Optional)</label>
                                 <input type="url" name="cloud_doc_url" placeholder="https://drive.google.com/..." class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                              </div>
 
                              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                
-                                <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-green-300 transition-colors">
-                                    <label class="block text-[14px] font-medium text-gray-800 mb-1">Project Report Document * </label>
-                                    <p class="text-xs text-gray-500 mb-2">Project Proposal Description (PDF/Docx/Xlsx)</p>
-                                    <input type="file" id="file-project-description" accept=".pdf,.docx,.xlsx" class="w-full text-[14px] text-gray-500"/>
-                                </div>
 
+                              <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-green-300 transition-colors">
+                                    <label class="block text-[14px] font-medium text-gray-800 mb-1">Sustainability Report *</label>
+                                    <p class="text-xs text-gray-500 mb-2">Planned ESG Framework and Initiatives (PDF/Docx)</p>
+                                    <input type="file" id="file-sustainability-report" required accept=".pdf,.docx" class="w-full text-[14px] text-gray-500"/>
+                                </div>
+                                
                                 <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-green-300 transition-colors">
                                     <label class="block text-[14px] font-medium text-gray-800 mb-1">Annual Report *</label>
                                     <p class="text-xs text-gray-500 mb-2">Annual Report of Company / Organization (PDF, DOCX, XLSX)</p>
                                     <input type="file" required id="file-annual-report" accept=".pdf,.docx,.xlsx" class="w-full text-[14px] text-gray-500"/>
-                                </div>
-
-                                <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-green-300 transition-colors">
-                                    <label class="block text-[14px] font-medium text-gray-800 mb-1">Sustainability Report *</label>
-                                    <p class="text-xs text-gray-500 mb-2">Environmental Social Governance Disclosure Docs (PDF/Docx)</p>
-                                    <input type="file" id="file-sustainability-report" accept=".pdf,.docx" class="w-full text-[14px] text-gray-500"/>
                                 </div>
 
                                 <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-green-300 transition-colors">
@@ -532,7 +529,7 @@ export function renderApplicationForm() {
                                 
                                 <div class="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-green-300 transition-colors">
                                     <label class="block text-[14px] font-medium text-gray-800 mb-1">ESG Certifications & Approvals 1</label>
-                                    <p class="text-xs text-gray-500 mb-2">Any primary certification</p>
+                                    <p class="text-xs text-gray-500 mb-2">Any green certification or review</p>
                                     <input type="file" id="file-cert-1" accept=".pdf,.docx,.xlsx" class="w-full text-[14px] text-gray-500"/>
                                 </div>
 
@@ -564,175 +561,207 @@ export function renderApplicationForm() {
     `;
 }
 export async function handleApplicationSubmit(e) {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData.entries());
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const data = Object.fromEntries(formData.entries());
 
-    // Helper functions for robust parsing
-    const parseOptionalFloat = (val) => {
-        if (val === null || val.trim() === '') return null;
-        const num = parseFloat(val);
-        return isNaN(num) ? null : num;
-    };
-    const parseOptionalInt = (val) => {
-        if (val === null || val.trim() === '') return null;
-        const num = parseInt(val, 10);
-        return isNaN(num) ? null : num;
-    };
+  // Helper functions for robust parsing
+  const parseOptionalFloat = (val) => {
+    if (val === null || val.trim() === "") return null;
+    const num = parseFloat(val);
+    return isNaN(num) ? null : num;
+  };
+  const parseOptionalInt = (val) => {
+    if (val === null || val.trim() === "") return null;
+    const num = parseInt(val, 10);
+    return isNaN(num) ? null : num;
+  };
 
-    // 1. Data Transformation & Parsing for Payload
-    const amount_requested = parseOptionalFloat(data.amount);
+  // 1. Data Transformation & Parsing for Payload
+  const amount_requested = parseOptionalFloat(data.amount);
 
-    const kpi_metrics = (data.kpi_metrics && typeof data.kpi_metrics === 'string')
-        ? data.kpi_metrics.split(',').map(s => s.trim()).filter(s => s)
-        : [];
-    
-    // Create a complete questionnaire object
-    const questionnaire_data = {
-        q_env_benefits: data['1_Does_the_project_have_clear_environmental_benefits?'] || null,
-        q_data_available: data['2_Is_data_available_to_measure_and_report_impact?'] || null,
-        q_regulatory_compliance: data['3_Compliance_with_local_environmental_regulations?'] || null,
-        q_social_risk: data['4_Any_controversy_or_negative_social_impact_risks?'] || null,
-        q_rd_low_carbon: data['5_Are_you_implementing_any_research_and_development_(R&D)_for_low-carbon_technologies_or_practices?'] || null,
-        q_union_agreement: data['6_Have_you_signed_a_Union_agreement?'] || null,
-        q_adopt_ghg_protocol: data['7_Are_you_adapting_GHG_Protocol?'] || null,
-        q_published_climate_disclosures: data['8_Has_the_organization_published_climate-related_disclosures_or_reporting?'] || null,
-        q_timebound_targets: data['9_Are_there_clear,_time-bound_emissions_reduction_targets_aligned_with_climate_pathways?'] || null,
-        q_phaseout_highcarbon: data['10_Does_the_company_have_plans_to_phase_out_or_avoid_new_high-carbon_infrastructure?'] || null,
-        q_long_lived_highcarbon_assets: data['11_Does_the_project_involve_long-lived_high-carbon_assets_that_could_inhibit_future_decarbonisation?'] || null,
-    };
+  const kpi_metrics =
+    data.kpi_metrics && typeof data.kpi_metrics === "string"
+      ? data.kpi_metrics
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => s)
+      : [];
 
-    // Collect Shareholders Data
-    const shareholder_count = parseOptionalInt(data.shareholder_entities) || 0;
-    const shareholders_data = [];
-    for (let i = 1; i <= shareholder_count; i++) {
-        const sName = data[`shareholder_${i}_name`];
-        const sPct = data[`shareholder_${i}_percentage`];
-        if (sName || sPct) {
-            shareholders_data.push({
-                name: sName || '',
-                percentage: parseOptionalFloat(sPct)
-            });
-        }
+  // Create a complete questionnaire object
+  const questionnaire_data = {
+    q_env_benefits:
+      data["1_Does_the_project_have_clear_environmental_benefits?"] || null,
+    q_data_available:
+      data["2_Is_data_available_to_measure_and_report_impact?"] || null,
+    q_regulatory_compliance:
+      data["3_Compliance_with_local_environmental_regulations?"] || null,
+    q_social_risk:
+      data["4_Any_controversy_or_negative_social_impact_risks?"] || null,
+    q_rd_low_carbon:
+      data[
+        "5_Are_you_implementing_any_research_and_development_(R&D)_for_low-carbon_technologies_or_practices?"
+      ] || null,
+    q_union_agreement: data["6_Have_you_signed_a_Union_agreement?"] || null,
+    q_adopt_ghg_protocol: data["7_Are_you_adapting_GHG_Protocol?"] || null,
+    q_published_climate_disclosures:
+      data[
+        "8_Has_the_organization_published_climate-related_disclosures_or_reporting?"
+      ] || null,
+    q_timebound_targets:
+      data[
+        "9_Are_there_clear,_time-bound_emissions_reduction_targets_aligned_with_climate_pathways?"
+      ] || null,
+    q_phaseout_highcarbon:
+      data[
+        "10_Does_the_company_have_plans_to_phase_out_or_avoid_new_high-carbon_infrastructure?"
+      ] || null,
+    q_long_lived_highcarbon_assets:
+      data[
+        "11_Does_the_project_involve_long-lived_high-carbon_assets_that_could_inhibit_future_decarbonisation?"
+      ] || null,
+  };
+
+  // Collect Shareholders Data
+  const shareholder_count = parseOptionalInt(data.shareholder_entities) || 0;
+  const shareholders_data = [];
+  for (let i = 1; i <= shareholder_count; i++) {
+    const sName = data[`shareholder_${i}_name`];
+    const sPct = data[`shareholder_${i}_percentage`];
+    if (sName || sPct) {
+      shareholders_data.push({
+        name: sName || "",
+        percentage: parseOptionalFloat(sPct),
+      });
     }
+  }
 
-    const payload = {
-        org_name: data.org_name,
-        sector: data.sector,
-        org_gst: data.org_gst,
-        credit_score: parseOptionalInt(data.credit_score),
-        annual_revenue: parseOptionalFloat(data.annual_revenue),
-        location: data.location,
-        website: data.website,
-        contact_email: data.contact_email,
-        contact_phone: data.contact_phone,
+  const payload = {
+    org_name: data.org_name,
+    sector: data.sector,
+    org_gst: data.org_gst,
+    credit_score: parseOptionalInt(data.credit_score),
+    annual_revenue: parseOptionalFloat(data.annual_revenue),
+    location: data.location,
+    website: data.website,
+    contact_email: data.contact_email,
+    contact_phone: data.contact_phone,
 
-        project_name: data.project_name,
-        project_location: data.project_location,
-        project_pin_code: data.project_pin_code,
-        project_type: data.project_type,
-        reporting_frequency: data.reporting_frequency,
-        has_existing_loan: data.has_existing_loan === 'true',
+    project_name: data.project_name,
+    project_location: data.project_location,
+    project_pin_code: data.project_pin_code,
+    project_type: data.project_type,
+    reporting_frequency: data.reporting_frequency,
+    has_existing_loan: data.has_existing_loan === "true",
 
-        amount_requested: amount_requested,
-        currency: data.currency,
+    amount_requested: amount_requested,
+    currency: data.currency,
 
-        project_description: data.project_description,
-        planned_start_date: data.planned_start_date,
-        shareholder_entities: shareholder_count,
-        shareholders_data: shareholders_data,
+    project_description: data.project_description,
+    planned_start_date: data.planned_start_date,
+    shareholder_entities: shareholder_count,
+    shareholders_data: shareholders_data,
 
-        use_of_proceeds_description: data.use_of_proceeds,
-        scope1_tco2: parseOptionalFloat(data.scope1_tco2),
-        scope2_tco2: parseOptionalFloat(data.scope2_tco2),
-        scope3_tco2: parseOptionalFloat(data.scope3_tco2),
-        
-        ghg_baseline_year: parseOptionalInt(data.baseline_year),
-        ghg_target_reduction: parseOptionalFloat(data.target_reduction),
-        
-        kpi_metrics: kpi_metrics,
+    use_of_proceeds: data.use_of_proceeds,
+    scope1_tco2: parseOptionalFloat(data.scope1_tco2),
+    scope2_tco2: parseOptionalFloat(data.scope2_tco2),
+    scope3_tco2: parseOptionalFloat(data.scope3_tco2),
 
-        additional_info: data.additional_info || null,
-        cloud_doc_url: data.cloud_doc_url || null,
-        consent_agreed: data.consent_agreed === 'on',
-        questionnaire_data: questionnaire_data
-    };
+    baseline_year: parseOptionalInt(data.baseline_year),
+    target_reduction: data.target_reduction || null,
 
-    try {
-        const currentUser = getCurrentUser();
-        if (!currentUser) throw new Error("User not confirmed. Please reload.");
+    kpi_metrics: kpi_metrics,
 
-        // Submit Application Data using standard API Call
-        const res = await apiCall('/borrower/apply', {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        });
+    loan_tenor: parseOptionalInt(data.loan_tenor),
+    cloud_doc_url: data.cloud_doc_url || null,
+    consent_agreed: data.consent_agreed === "on",
+    questionnaire_data: questionnaire_data,
+  };
 
-        // Immediately acknowledge submission and disable submit to avoid duplicates
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            const origText = submitBtn.innerText;
-            submitBtn.innerText = 'Submitting...';
-            // Start background uploads so user sees immediate confirmation
-            if (res && res.id) {
-                const appId = res.id;
-                alert(`✅ Application submission initiated with Loan ID: ${appId}. Information is under validation...`);
+  try {
+    const currentUser = getCurrentUser();
+    if (!currentUser) throw new Error("User not confirmed. Please reload.");
 
-                (async () => {
-                    const uploadQueue = [
-                        { id: 'file-project-description', cat: 'project_description' },
-                        { id: 'file-annual-report', cat: 'annual_report' },
-                        { id: 'file-sustainability-report', cat: 'sustainability_report' },
-                        { id: 'file-use-of-proceeds', cat: 'use_of_proceeds' },
-                        { id: 'file-cert-1', cat: 'certification_1' }
-                    ];
+    // Submit Application Data using standard API Call
+    const res = await apiCall("/borrower/apply", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
 
-                    let uploadCount = 0;
-                    const uploadedFiles = [];
+    // Immediately acknowledge submission and disable submit to avoid duplicates
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      const origText = submitBtn.innerText;
+      submitBtn.innerText = "Submitting...";
+      // Start background uploads so user sees immediate confirmation
+      if (res && res.id) {
+        const appId = res.id;
+        alert(
+          `✅ Application submission initiated with Loan ID: ${appId}. Information is under validation...`
+        );
 
-                    for (const item of uploadQueue) {
-                        const fileInput = document.getElementById(item.id);
-                        if (fileInput && fileInput.files[0]) {
-                            const uploadData = new FormData();
-                            uploadData.append('file', fileInput.files[0]);
-                            uploadData.append('category', item.cat);
+        (async () => {
+          const uploadQueue = [
+            { id: "file-annual-report", cat: "annual_report" },
+            { id: "file-sustainability-report", cat: "sustainability_report" },
+            { id: "file-use-of-proceeds", cat: "use_of_proceeds" },
+            { id: "file-cert-1", cat: "certification_1" },
+          ];
 
-                            try {
-                                const resp = await fetch(`${API_BASE}/borrower/${appId}/documents`, {
-                                    method: 'POST',
-                                    body: uploadData
-                                });
+          let uploadCount = 0;
+          const uploadedFiles = [];
 
-                                if (resp.ok) {
-                                    const json = await resp.json();
-                                    uploadCount++;
-                                    uploadedFiles.push(json.filename || item.id);
-                                } else {
-                                    console.error(`Failed to upload ${item.cat}`, resp.statusText);
-                                }
-                            } catch (e) {
-                                console.error(`Failed to upload ${item.cat}`, e);
-                            }
-                        }
-                    }
+          for (const item of uploadQueue) {
+            const fileInput = document.getElementById(item.id);
+            if (fileInput && fileInput.files[0]) {
+              const uploadData = new FormData();
+              uploadData.append("file", fileInput.files[0]);
+              uploadData.append("category", item.cat);
 
-                    const filesMsg = uploadedFiles.length ? `\n\nFiles uploaded:\n- ${uploadedFiles.join('\n- ')}` : '';
-                    alert(`✅ All uploads complete for Loan ID: ${appId}. Documents Uploaded: ${uploadCount}${filesMsg}`);
-                    submitBtn.disabled = false;
-                    submitBtn.innerText = origText;
-                    window.navigateTo('dashboard');
-                })();
+              try {
+                const resp = await fetch(
+                  `${API_BASE}/borrower/${appId}/documents`,
+                  {
+                    method: "POST",
+                    body: uploadData,
+                  }
+                );
 
-            } else {
-                // If creation failed, re-enable submit button
-                submitBtn.disabled = false;
-                submitBtn.innerText = origText;
+                if (resp.ok) {
+                  const json = await resp.json();
+                  uploadCount++;
+                  uploadedFiles.push(json.filename || item.id);
+                } else {
+                  console.error(
+                    `Failed to upload ${item.cat}`,
+                    resp.statusText
+                  );
+                }
+              } catch (e) {
+                console.error(`Failed to upload ${item.cat}`, e);
+              }
             }
-        }
+          }
 
-    } catch (err) {
-        console.error(err);
-        alert('Failed to submit application: ' + err.message);
+          const filesMsg = uploadedFiles.length
+            ? `\n\nFiles uploaded:\n- ${uploadedFiles.join("\n- ")}`
+            : "";
+          alert(
+            `✅ All uploads complete for Loan ID: ${appId}. Documents Uploaded: ${uploadCount}${filesMsg}`
+          );
+          submitBtn.disabled = false;
+          submitBtn.innerText = origText;
+          window.navigateTo("dashboard");
+        })();
+      } else {
+        // If creation failed, re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.innerText = origText;
+      }
     }
+  } catch (err) {
+    console.error(err);
+    alert("Failed to submit application: " + err.message);
+  }
 }

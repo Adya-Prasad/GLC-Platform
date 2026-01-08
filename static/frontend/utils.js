@@ -10,6 +10,13 @@ export async function apiCall(endpoint, options = {}) {
         defaultHeaders['Authorization'] = `Bearer ${user.token}`;
     }
 
+    // Add user_id to query params for authentication (hackathon approach)
+    let url = `${API_BASE}${endpoint}`;
+    if (user && user.id) {
+        const separator = endpoint.includes('?') ? '&' : '?';
+        url += `${separator}current_user_id=${user.id}`;
+    }
+
     const config = {
         ...options,
         headers: {
@@ -23,7 +30,7 @@ export async function apiCall(endpoint, options = {}) {
     config.signal = controller.signal;
 
     try {
-        const response = await fetch(`${API_BASE}${endpoint}`, config);
+        const response = await fetch(url, config);
         clearTimeout(timeoutId);
 
         if (!response.ok) {

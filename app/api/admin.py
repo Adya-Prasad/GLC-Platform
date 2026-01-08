@@ -19,7 +19,7 @@ from app.core.auth import get_current_user, MockAuth, log_audit_action
 from app.core.config import settings
 from app.utils.storage import get_loan_dir
 from app.services.ingestion import ingestion_service
-from app.services.report import report_service
+# from app.services.report import report_service
 
 router = APIRouter(tags=["Admin"])
 
@@ -69,33 +69,33 @@ async def run_ingestion(
     )
 
 
-@router.get("/report/application/{loan_id}")
-async def get_report(
-    loan_id: int,
-    format: str = Query("json", description="Output format: json or pdf"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Generate GLP investor report for a loan application."""
+# @router.get("/report/application/{loan_id}")
+# async def get_report(
+#     loan_id: int,
+#     format: str = Query("json", description="Output format: json or pdf"),
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(get_current_user)
+# ):
+#     """Generate GLP investor report for a loan application."""
     
-    if not current_user:
-        current_user = MockAuth.quick_login(db, "lender")
+#     if not current_user:
+#         current_user = MockAuth.quick_login(db, "lender")
     
-    try:
-        report_data = report_service.generate_report(db, loan_id, format)
+#     try:
+#         report_data = report_service.generate_report(db, loan_id, format)
         
-        if format == "pdf" and "pdf_url" in report_data:
-            pdf_path = Path(report_data["pdf_url"])
-            if pdf_path.exists():
-                return FileResponse(
-                    path=str(pdf_path),
-                    filename=pdf_path.name,
-                    media_type="application/pdf"
-                )
+#         if format == "pdf" and "pdf_url" in report_data:
+#             pdf_path = Path(report_data["pdf_url"])
+#             if pdf_path.exists():
+#                 return FileResponse(
+#                     path=str(pdf_path),
+#                     filename=pdf_path.name,
+#                     media_type="application/pdf"
+#                 )
         
-        return report_data
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+#         return report_data
+#     except ValueError as e:
+#         raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.post("/external_review/{loan_id}/request")

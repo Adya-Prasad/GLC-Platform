@@ -23,7 +23,6 @@ class Settings(BaseSettings):
     # File Storage
     UPLOAD_DIR: Path = Path("./loan_assets")
     FAISS_INDEX_DIR: Path = Path("./faiss_indexes")
-    REPORTS_DIR: Path = Path("./reports")
     
     # NLP Models
     EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
@@ -58,7 +57,6 @@ settings = Settings()
 # Ensure directories exist
 settings.UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 settings.FAISS_INDEX_DIR.mkdir(parents=True, exist_ok=True)
-settings.REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # GLP Categories as per LMA Green Loan Principles
 GLP_CATEGORIES = [

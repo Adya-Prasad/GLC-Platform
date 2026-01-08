@@ -4,7 +4,7 @@ Simplified authentication for hackathon - name + 6-digit passcode.
 """
 
 from typing import Optional, Tuple
-from fastapi import Depends
+from fastapi import Depends, Query
 from sqlalchemy.orm import Session
 
 
@@ -14,11 +14,17 @@ def get_db_conn():
     yield from get_db()
 
 
-def get_current_user(db: Session = Depends(get_db_conn)) -> Optional['User']:
+def get_current_user(
+    db: Session = Depends(get_db_conn),
+    current_user_id: Optional[int] = Query(None, description="Current user ID for authentication")
+) -> Optional['User']:
     """
-    Get the current user - for hackathon, returns None (anonymous access allowed).
-    Real auth would check session/JWT here.
+    Get the current user from the current_user_id query parameter.
+    For hackathon - simple ID-based lookup.
     """
+    if current_user_id:
+        from app.models.orm_models import User
+        return db.query(User).filter(User.id == current_user_id).first()
     return None
 
 
