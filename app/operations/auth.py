@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session
 
 
 def get_db_conn():
-    """Wrapper to break circular import with app.models.db."""
-    from app.models.db import get_db
+    """Wrapper to break circular import with dbms.db."""
+    from dbms.db import get_db
     yield from get_db()
 
 
@@ -23,7 +23,7 @@ def get_current_user(
     For hackathon - simple ID-based lookup.
     """
     if current_user_id:
-        from app.models.orm_models import User
+        from dbms.orm_models import User
         return db.query(User).filter(User.id == current_user_id).first()
     return None
 
@@ -45,7 +45,7 @@ class MockAuth:
             - "existing_user": User found and passcode matched
             - "passcode_mismatch": User found but passcode didn't match
         """
-        from app.models.orm_models import User
+        from dbms.orm_models import User
         
         # Look up existing user by name and role
         user = db.query(User).filter(User.name == name, User.role == role).first()
@@ -71,7 +71,7 @@ class MockAuth:
         Quick login for API endpoints - returns user object only.
         Creates demo user if name/passcode not provided.
         """
-        from app.models.orm_models import UserRole, User
+        from dbms.orm_models import UserRole, User
         role_enum = UserRole(role.lower())
         
         # Use provided name or default demo names
@@ -106,7 +106,7 @@ class MockAuth:
         Login with passcode verification - for the login endpoint.
         Returns tuple of (user, status).
         """
-        from app.models.orm_models import UserRole
+        from dbms.orm_models import UserRole
         role_enum = UserRole(role.lower())
         return MockAuth.login_user(db, name, passcode, role_enum)
 
@@ -120,7 +120,7 @@ def log_audit_action(
     data: dict = None
 ):
     """Log an action to the audit trail."""
-    from app.models.orm_models import AuditLog
+    from dbms.orm_models import AuditLog
     
     log = AuditLog(
         entity_type=entity_type,

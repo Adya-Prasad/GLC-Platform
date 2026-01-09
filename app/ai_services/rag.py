@@ -5,9 +5,9 @@ Retrieval-Augmented Generation for document analysis and verification.
 
 import logging
 from typing import List, Dict, Any
-from app.services.nlp import nlp_service
+from app.ai_services.nlp import nlp_service
 from app.utils.faiss_index import get_index
-from app.core.config import EXTRACTION_QUESTIONS
+from app.ai_services.config import EXTRACTION_QUESTIONS
 
 logger = logging.getLogger(__name__)
 

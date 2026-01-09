@@ -10,11 +10,12 @@ from fastapi.responses import HTMLResponse, FileResponse
 from pathlib import Path
 import logging
 
-from app.core.config import settings
-from app.models.db import init_db
+from app.ai_services.config import settings
+from dbms.db import init_db
 from app.api.users import router as users_router
 from app.api.admin import router as admin_router
 from app.api.audit import router as audit_router
+from app.api.analysis import router as analysis_router
 
 # Configure logging
 logging.basicConfig(
@@ -45,6 +46,7 @@ app.add_middleware(
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(audit_router, prefix="/api/v1")
+app.include_router(analysis_router, prefix="/api/v1")
 
 # Mount static files
 static_path = Path(__file__).parent.parent / "static"
@@ -91,8 +93,8 @@ async def health_check():
 @app.get("/api/v1/auth/login")
 async def mock_login(role: str = "borrower", name: str = None, passcode: str = None):
     """Mock login endpoint with passcode verification."""
-    from app.models.db import SessionLocal
-    from app.core.auth import MockAuth
+    from dbms.db import SessionLocal
+    from app.operations.auth import MockAuth
     
     if not name or not passcode:
         return {"error": "Name and passcode are required", "status": "error"}

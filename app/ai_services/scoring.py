@@ -7,8 +7,8 @@ import logging
 from typing import Dict, List, Any, Tuple
 from dataclasses import dataclass
 
-from app.core.config import settings,  GLP_CATEGORIES
-from app.services.glp_rules import glp_rules_engine, DNSHStatus, RiskLevel
+from app.ai_services.config import settings,  GLP_CATEGORIES
+from app.ai_services.esg_framework import esg_framework_engine, DNSHStatus, RiskLevel
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +72,31 @@ class ESGScoringEngine:
         self.weight_glp_alignment = settings.ESG_WEIGHT_GLP_ALIGNMENT
         self.spt_ambition_threshold = settings.SPT_AMBITION_THRESHOLD
     
+    def calculate_completeness_score(self, project_data: Dict) -> Tuple[float, Dict]:
+        """Calculate data completeness score based on required fields."""
+        required_fields = [
+            'org_name', 'project_name', 'sector', 'use_of_proceeds',
+            'amount_requested', 'currency', 'planned_start_date'
+        ]
+        optional_fields = [
+            'scope1_tco2', 'scope2_tco2', 'scope3_tco2', 'baseline_year',
+            'target_reduction', 'kpi_metrics', 'reporting_frequency',
+            'project_description', 'location', 'annual_revenue'
+        ]
+        
+        filled_required = sum(1 for f in required_fields if project_data.get(f))
+        filled_optional = sum(1 for f in optional_fields if project_data.get(f))
+        
+        required_score = (filled_required / len(required_fields)) * 70
+        optional_score = (filled_optional / len(optional_fields)) * 30
+        total = required_score + optional_score
+        
+        return total, {
+            'required_filled': filled_required,
+            'required_total': len(required_fields),
+            'optional_filled': filled_optional,
+            'optional_total': len(optional_fields)
+        }
     
     def calculate_verifiability_score(self, claims: List[Dict], evidence: List[Dict]) -> Tuple[float, Dict]:
         if not claims:
@@ -80,7 +105,7 @@ class ESGScoringEngine:
         return (verified / len(claims)) * 100, {'verified': verified, 'total': len(claims)}
     
     def calculate_glp_alignment_score(self, project_data: Dict, extracted_text: str = "") -> Tuple[float, Dict]:
-        eligibility = glp_rules_engine.assess_glp_eligibility(project_data, extracted_text)
+        eligibility = esg_framework_engine.assess_glp_eligibility(project_data, extracted_text)
         score = 40 * eligibility.confidence if eligibility.is_eligible else 10.0
         if eligibility.category in GLP_CATEGORIES:
             score += 20 * eligibility.confidence
@@ -92,14 +117,14 @@ class ESGScoringEngine:
         return min(100, score), {'category': eligibility.category}
     
     def calculate_dnsh_penalty(self, project_data: Dict, extracted_text: str = "") -> Tuple[float, Dict]:
-        dnsh = glp_rules_engine.assess_dnsh(project_data, extracted_text)
-        summary = glp_rules_engine.get_dnsh_summary(dnsh)
+        dnsh = esg_framework_engine.assess_dnsh(project_data, extracted_text)
+        summary = esg_framework_engine.get_dnsh_summary(dnsh)
         if not summary['overall_pass']:
             return 30.0, summary
         return summary['unclear_count'] * 5, summary
     
     def calculate_carbon_penalty(self, project_data: Dict, extracted_text: str = "") -> Tuple[float, Dict]:
-        result = glp_rules_engine.assess_carbon_lockin(project_data, extracted_text)
+        result = esg_framework_engine.assess_carbon_lockin(project_data, extracted_text)
         penalties = {RiskLevel.HIGH: 20.0, RiskLevel.MEDIUM: 10.0, RiskLevel.LOW: 0.0}
         return penalties[result.risk_level], {'risk_level': result.risk_level.value}
     

@@ -10,17 +10,17 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 import os
 
-from app.models.db import get_db
-from app.models.orm_models import (
+from dbms.db import get_db
+from dbms.orm_models import (
     User, Borrower, LoanApplication, ApplicationStatus, Document,
     Verification, VerificationResult
 )
-from app.models.schemas import (
+from dbms.schemas import (
     LoanApplicationCreate, LoanApplicationResponse, ApplicationCreateResponse,
     DocumentResponse, DocumentUploadResponse, IngestionJobResponse,
     LoanApplicationListItem, VerificationCreate, VerificationResponse, PortfolioSummary
 )
-from app.core.auth import get_current_user, MockAuth, log_audit_action
+from app.operations.auth import get_current_user, MockAuth, log_audit_action
 from app.utils.storage import save_upload_file, get_file_size, get_file_type, save_application_json, get_standardized_filename
 from app.utils.pdf_text import extract_text_from_file
 

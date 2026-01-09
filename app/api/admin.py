@@ -12,14 +12,14 @@ import zipfile
 import json
 from pathlib import Path
 
-from app.models.db import get_db, SessionLocal
-from app.models.orm_models import User, LoanApplication, AuditLog, Document, IngestionJob
-from app.models.schemas import AuditLogResponse, IngestionSummary, GlpReportData
-from app.core.auth import get_current_user, MockAuth, log_audit_action
-from app.core.config import settings
+from dbms.db import get_db, SessionLocal
+from dbms.orm_models import User, LoanApplication, AuditLog, Document, IngestionJob
+from dbms.schemas import AuditLogResponse, IngestionSummary, GlpReportData
+from app.operations.auth import get_current_user, MockAuth, log_audit_action
+from app.ai_services.config import settings
 from app.utils.storage import get_loan_dir
-from app.services.ingestion import ingestion_service
-# from app.services.report import report_service
+from app.ai_services.ingestion import ingestion_service
+# from app.ai_services.report import report_service
 
 router = APIRouter(tags=["Admin"])
 
@@ -67,35 +67,6 @@ async def run_ingestion(
         glp_category=None,
         processing_time_seconds=0.0
     )
-
-
-# @router.get("/report/application/{loan_id}")
-# async def get_report(
-#     loan_id: int,
-#     format: str = Query("json", description="Output format: json or pdf"),
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user)
-# ):
-#     """Generate GLP investor report for a loan application."""
-    
-#     if not current_user:
-#         current_user = MockAuth.quick_login(db, "lender")
-    
-#     try:
-#         report_data = report_service.generate_report(db, loan_id, format)
-        
-#         if format == "pdf" and "pdf_url" in report_data:
-#             pdf_path = Path(report_data["pdf_url"])
-#             if pdf_path.exists():
-#                 return FileResponse(
-#                     path=str(pdf_path),
-#                     filename=pdf_path.name,
-#                     media_type="application/pdf"
-#                 )
-        
-#         return report_data
-#     except ValueError as e:
-#         raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.post("/external_review/{loan_id}/request")
@@ -214,7 +185,7 @@ async def get_all_audit_logs(
 @router.get("/docs/list")
 async def list_docs():
     """List available documentation files."""
-    docs_dir = Path("user-docs")
+    docs_dir = Path("user_docs")
     if not docs_dir.exists():
         return []
     return [f.name for f in docs_dir.glob("*.md")]
@@ -223,7 +194,7 @@ async def list_docs():
 @router.get("/docs/content/{filename}")
 async def get_doc_content(filename: str):
     """Get content of a documentation file."""
-    doc_path = Path("user-docs") / filename
+    doc_path = Path("user_docs") / filename
     if not doc_path.exists() or not filename.endswith(".md"):
         raise HTTPException(status_code=404, detail="Document not found")
     return {"content": doc_path.read_text(encoding="utf-8")}
@@ -232,7 +203,7 @@ async def get_doc_content(filename: str):
 @router.get("/learn/list")
 async def list_learn_files():
     """List available learning materials."""
-    learn_dir = Path("user-learn")
+    learn_dir = Path("user_learn")
     if not learn_dir.exists():
         return []
     files = []
@@ -249,7 +220,7 @@ async def list_learn_files():
 @router.get("/learn/content/{filename}")
 async def get_learn_content(filename: str):
     """Get the file or content for learning."""
-    learn_path = Path("user-learn") / filename
+    learn_path = Path("user_learn") / filename
     if not learn_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
     

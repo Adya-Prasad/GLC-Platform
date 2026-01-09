@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from datetime import datetime
 from fastapi import UploadFile
-from app.core.config import settings
+from app.ai_services.config import settings
 
 
 # Document category to standardized filename mapping

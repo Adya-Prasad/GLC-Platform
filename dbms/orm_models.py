@@ -10,7 +10,7 @@ from sqlalchemy import (
     ForeignKey, Enum, JSON, LargeBinary, Boolean
 )
 from sqlalchemy.orm import relationship
-from app.models.db import Base
+from dbms.db import Base
 
 
 class UserRole(enum.Enum):

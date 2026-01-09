@@ -12,7 +12,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
 
-from app.core.config import (
+from app.ai_services.config import (
     GLP_CATEGORIES, DNSH_CRITERIA, CARBON_LOCKIN_INDICATORS,
     HIGH_RISK_SECTORS
 )
@@ -64,7 +64,7 @@ class GlpEligibilityResult:
     recommendations: List[str]
 
 
-class GLPRulesEngine:
+class ESGFrameworkEngine:
     """
     Implements Green Loan Principles compliance rules.
     Based on LMA Green Loan Principles framework.
@@ -624,4 +624,4 @@ class GLPRulesEngine:
 
 
 # Singleton instance
-glp_rules_engine = GLPRulesEngine()
+esg_framework_engine = ESGFrameworkEngine()

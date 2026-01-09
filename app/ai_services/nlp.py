@@ -22,7 +22,7 @@ def get_embedding_model():
     if _embedding_model is None:
         try:
             from sentence_transformers import SentenceTransformer
-            from app.core.config import settings
+            from app.ai_services.config import settings
             logger.info(f"Loading embedding model: {settings.EMBEDDING_MODEL}")
             _embedding_model = SentenceTransformer(settings.EMBEDDING_MODEL)
             logger.info("Embedding model loaded successfully")
@@ -38,7 +38,7 @@ def get_qa_pipeline():
     if _qa_pipeline is None:
         try:
             from transformers import pipeline
-            from app.core.config import settings
+            from app.ai_services.config import settings
             logger.info(f"Loading QA model: {settings.QA_MODEL}")
             _qa_pipeline = pipeline("question-answering", model=settings.QA_MODEL)
             logger.info("QA model loaded successfully")
@@ -54,7 +54,7 @@ def get_summarizer():
     if _summarizer is None:
         try:
             from transformers import pipeline
-            from app.core.config import settings
+            from app.ai_services.config import settings
             logger.info(f"Loading RAG/summarization model: {settings.RAG_MODEL}")
             _summarizer = pipeline("text2text-generation", model=settings.RAG_MODEL)
             logger.info("Summarization model loaded successfully")
@@ -290,7 +290,7 @@ Answer:"""
         Classify project into GLP category based on use of proceeds.
         Returns category and confidence score.
         """
-        from app.core.config import GLP_CATEGORIES
+        from app.ai_services.config import GLP_CATEGORIES
         
         use_lower = use_of_proceeds.lower()
         

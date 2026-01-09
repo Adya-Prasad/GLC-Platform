@@ -71,10 +71,10 @@ uvicorn app.main:app --reload --port 8000
 | GLP Categories | app/core/config.py | GLP_CATEGORIES list |
 | DNSH Criteria | app/core/config.py | DNSH_CRITERIA dict |
 | Carbon Indicators | app/core/config.py | CARBON_LOCKIN_INDICATORS list |
-| Use of Proceeds | app/services/glp_rules.py | `validate_use_of_proceeds()` |
-| All 6 DNSH Checks | app/services/glp_rules.py | `assess_dnsh()`, `_check_*()` methods |
-| Carbon Lock-in | app/services/glp_rules.py | `assess_carbon_lockin()` |
-| Overall Eligibility | app/services/glp_rules.py | `assess_glp_eligibility()` |
+| Use of Proceeds | app/services/esg_framework.py | `validate_use_of_proceeds()` |
+| All 6 DNSH Checks | app/services/esg_framework.py | `assess_dnsh()`, `_check_*()` methods |
+| Carbon Lock-in | app/services/esg_framework.py | `assess_carbon_lockin()` |
+| Overall Eligibility | app/services/esg_framework.py | `assess_glp_eligibility()` |
 | Scoring Integration | app/services/scoring.py | `calculate_dnsh_penalty()`, `calculate_carbon_penalty()` |
 | Pipeline Integration | app/services/ingestion.py | `run_ingestion()` |
 

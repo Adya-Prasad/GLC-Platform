@@ -9,14 +9,14 @@ from datetime import datetime
 from typing import Dict, Any, List
 from sqlalchemy.orm import Session
 
-from app.models.orm_models import Document, DocChunk, LoanApplication, IngestionJob, Verification, VerificationResult, KPI
-from app.services.nlp import nlp_service
-from app.services.rag import rag_service
-from app.services.scoring import esg_scoring_engine
-from app.services.glp_rules import glp_rules_engine
+from dbms.orm_models import Document, DocChunk, LoanApplication, IngestionJob, Verification, VerificationResult, KPI
+from app.ai_services.nlp import nlp_service
+from app.ai_services.rag import rag_service
+from app.ai_services.scoring import esg_scoring_engine
+from app.ai_services.esg_framework import esg_framework_engine
 from app.utils.pdf_text import extract_text_from_file
 from app.utils.faiss_index import get_index
-from app.core.auth import log_audit_action
+from app.operations.auth import log_audit_action
 
 logger = logging.getLogger(__name__)
 
@@ -124,14 +124,14 @@ class IngestionService:
             )
             
             # Assess GLP eligibility
-            glp_result = glp_rules_engine.assess_glp_eligibility(project_data, combined_text)
+            glp_result = esg_framework_engine.assess_glp_eligibility(project_data, combined_text)
             
             # Assess carbon lock-in
-            carbon_result = glp_rules_engine.assess_carbon_lockin(project_data, combined_text)
+            carbon_result = esg_framework_engine.assess_carbon_lockin(project_data, combined_text)
             
             # Assess DNSH
-            dnsh_results = glp_rules_engine.assess_dnsh(project_data, combined_text)
-            dnsh_summary = glp_rules_engine.get_dnsh_summary(dnsh_results)
+            dnsh_results = esg_framework_engine.assess_dnsh(project_data, combined_text)
+            dnsh_summary = esg_framework_engine.get_dnsh_summary(dnsh_results)
             
             # Update loan application
             loan_app.esg_score = esg_result.total_score
@@ -207,7 +207,7 @@ class IngestionService:
         The background task should call this helper with the IngestionJob id. This method will
         open a new DB session, mark the job as running, then call `run_ingestion`.
         """
-        from app.models.db import SessionLocal
+        from dbms.db import SessionLocal
         db = SessionLocal()
         try:
             # Load job and associated loan_id

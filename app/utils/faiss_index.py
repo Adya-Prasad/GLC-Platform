@@ -8,7 +8,7 @@ import pickle
 import numpy as np
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
-from app.core.config import settings
+from app.ai_services.config import settings
 
 logger = logging.getLogger(__name__)
 

@@ -48,4 +48,5 @@ Thumbs.db
 # user
 todo.md
 prompt.md
-loan_assets/
+loan_assets/*
+!loan_assets/init.txt
