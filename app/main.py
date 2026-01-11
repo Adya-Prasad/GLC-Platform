@@ -16,6 +16,9 @@ from app.api.users import router as users_router
 from app.api.admin import router as admin_router
 from app.api.audit import router as audit_router
 from app.api.analysis import router as analysis_router
+from app.api.location import router as location_router
+from app.api.documents import router as documents_router
+from app.api.environ_sustainability import router as environment_router
 
 # Configure logging
 logging.basicConfig(
@@ -47,6 +50,9 @@ app.include_router(users_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(audit_router, prefix="/api/v1")
 app.include_router(analysis_router, prefix="/api/v1")
+app.include_router(location_router, prefix="/api/v1")
+app.include_router(documents_router, prefix="/api/v1")
+app.include_router(environment_router, prefix="/api/v1")
 
 # Mount static files
 static_path = Path(__file__).parent.parent / "static"

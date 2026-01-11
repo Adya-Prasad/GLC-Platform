@@ -18,8 +18,7 @@ from dbms.schemas import AuditLogResponse, IngestionSummary, GlpReportData
 from app.operations.auth import get_current_user, MockAuth, log_audit_action
 from app.ai_services.config import settings
 from app.utils.storage import get_loan_dir
-from app.ai_services.ingestion import ingestion_service
-# from app.ai_services.report import report_service
+
 
 router = APIRouter(tags=["Admin"])
 
@@ -50,8 +49,6 @@ async def run_ingestion(
     db.commit()
     db.refresh(job)
 
-    # Schedule background task using a helper that opens its own DB session
-    background_tasks.add_task(ingestion_service.start_ingestion_async, job.id)
 
     # Audit log entry
     log_audit_action(db, "LoanApplication", loan_id, "ingestion_queued", current_user.id, data={"job_id": job.id})

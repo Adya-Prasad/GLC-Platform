@@ -25,8 +25,12 @@ export async function apiCall(endpoint, options = {}) {
         }
     };
 
+    // Use longer timeout for AI/document endpoints
+    const isAIEndpoint = endpoint.includes('/documents/') || endpoint.includes('/analyze');
+    const timeoutMs = isAIEndpoint ? 120000 : 15000; // 2 min for AI, 15s for others
+    
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     config.signal = controller.signal;
 
     try {
@@ -40,7 +44,7 @@ export async function apiCall(endpoint, options = {}) {
     } catch (error) {
         clearTimeout(timeoutId);
         if (error.name === 'AbortError') {
-            throw new Error('Request timed out. Please check your connection.');
+            throw new Error('Request timed out. Please try again, model loading may take time on first run.');
         }
         console.error('API Call Error:', error);
         throw error;
@@ -66,13 +70,13 @@ export function formatCurrency(amount, currency = 'USD') {
 export function getStatusClass(status) {
     const statusLower = (status || '').toLowerCase();
     switch (statusLower) {
-        case 'approved': return 'bg-green-400 text-green-800';
-        case 'rejected': return 'bg-red-300 text-red-700';
-        case 'pending': return 'bg-gray-300 text-gray-700';
-        case 'submitted': return 'bg-gray-300 text-gray-700';
-        case 'under_review': return 'bg-yellow-400 text-purple-700';
-        case 'verified': return 'bg-green-300 text-green-800';
-        default: return 'bg-gray-100 text-gray-700';
+        case 'approved': return 'bg-green-400/90 text-green-800 border border-green-800';
+        case 'rejected': return 'bg-red-300/90 text-red-700 border border-red-700';
+        case 'pending': return 'bg-gray-300/90 text-gray-700 border border-gray-700';
+        case 'submitted': return 'bg-gray-300/90 text-gray-700 border border-gray-700';
+        case 'under_review': return 'bg-yellow-400/90 text-yellow-700 border border-yellow-700';
+        case 'verified': return 'bg-green-300/90 text-green-800 border border-green-700';
+        default: return 'bg-gray-100/90 text-gray-700 border border-gray-700';
     }
 }
 

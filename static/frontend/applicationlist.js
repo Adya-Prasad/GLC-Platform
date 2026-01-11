@@ -20,30 +20,29 @@ export async function renderApplications() {
     const tableBody = (apps && apps.length > 0)
         ? apps.map(a => `
             <tr class="hover:bg-gray-50/50 transition-colors cursor-pointer group border-b p-2 border-[color:var(--border-color)]" onclick="window.viewApplication(${a.id})">
-                <td class="px-6 py-4">
+                <td class="px-3 py-4">
                     <p class="font-bold text-gray-900 group-hover:text-[var(--green)] transition-colors">${a.project_name}</p>
                     <p class="text-[10px] text-gray-500 font-medium uppercase mt-0.5">ID: LOAN-${a.id}</p>
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-600 font-medium">${a.org_name || 'N/A'}</td>
                 <td class="px-6 py-4 text-sm text-gray-500">${a.sector}</td>
-                <td class="px-6 py-4 text-sm text-gray-500 font-mono">${a.planned_start_date || '-'}</td>
                 <td class="px-6 py-4 text-sm font-bold text-gray-900">${formatCurrency(a.amount_requested, a.currency)}</td>
                 <td class="px-6 py-4">
-                    <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusClass(a.status)}">${a.status}</span>
+                    <span class="px-3 py-1 rounded-full cursor-progress text-[11px] font-bold uppercase tracking-wider ${getStatusClass(a.status)}">${a.status}</span>
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-600 text-center">
                     <div class="flex items-center justify-center gap-3">
-                        <span class="font-bold text-amber-700 ">${a.shareholder_entities ?? 0} + 1</span>
-                        <button onclick="window.inviteShareholders(event, ${a.id})" class="flex items-center gap-2 px-3 py-1 rounded-md text-sm bg-amber-400 text-amber-700 border border-amber-700 hover:bg-amber-100 transition-all" title="Invite shareholders">
+                        <p class="inlin-flex font-bold text-amber-700 ">${a.shareholder_entities ?? 0}+1</p>
+                        <button onclick="window.inviteShareholders(event, ${a.id})" class="flex items-center gap-2 px-3 py-1 rounded-md text-sm bg-amber-400 text-amber-700 hover:bg-amber-100 transition-all" title="Invite shareholders">
                         <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none"><circle cx="9" cy="7" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 13H7C4.79086 13 3 14.7909 3 17C3 18.6569 4.34315 20 6 20H12C13.6569 20 15 18.6569 15 17C15 14.7909 13.2091 13 11 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20.7249 9.25H15.7751M18.25 6.77515L18.25 11.7249" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                         <span class="invite-text text-xs font-semibold">Invite</span>
                         </button>
                     </div>
                 </td>
-                <td class="px-6 py-4 text-center">
-                    <button onclick="window.navigateToAudit(${a.id})" class="text-green-700 hover:text-green-700 p-2 rounded-full hover:bg-green-50 transition-all flex items-center justify-center mx-auto gap-2 border border-gray-100 hover:border-green-700">
+                <td class="px-2 py-5 text-center">
+                    <button onclick="window.navigateToAudit(${a.id})" class=" text-[var(--green)] px-2 py-1 rounded-full transition-all flex-inline items-center justify-center mx-auto gap-2 hover:border-[var(--green)] hover:border">
                          <svg fill="currentColor" class="w-6 h-6" viewBox="0 0 24 24" data-name="Line Color"><path d="M21,15l-2.83-2.83M13,10a3,3,0,1,0,3-3A3,3,0,0,0,13,10Zm0,7H7m2-4H7" style="fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2;"></path><path d="M17,17v3a1,1,0,0,1-1,1H4a1,1,0,0,1-1-1V4A1,1,0,0,1,4,3H16" style="fill: none; stroke:currentColor"></path></svg>
-                         <span class="text-xs font-bold">See Audit</span>
+                         <p class="text-xs font-bold">See Audit</p>
                     </button>
                 </td>
             </tr>
@@ -75,7 +74,6 @@ export async function renderApplications() {
                             <th class="px-6 py-4">Project Name</th>
                             <th class="px-6 py-4">Org Name</th>
                             <th class="px-6 py-4">Industry Sector</th>
-                            <th class="px-6 py-4">Start Date</th>
                             <th class="px-6 py-4">Amount</th>
                             <th class="px-6 py-4">Status</th>
                             <th class="px-6 py-4">Shareholders</th>

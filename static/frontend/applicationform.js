@@ -268,8 +268,8 @@ export function renderApplicationForm() {
                                     <input type="text" name="target_reduction" placeholder="e.g. 60" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                                 </div>
                                 <div>
-                                    <label class="block text-[14px] font-medium text-gray-800 mb-2">Initiated Baseline Year</label>
-                                    <input type="number" name="baseline_year" placeholder="YYYY" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
+                                    <label class="block text-[14px] font-medium text-gray-800 mb-2">Target Year</label>
+                                    <input type="number" min="2027" name="baseline_year" placeholder="YYYY" class="w-full px-3 p-2 border border-gray-300 rounded-xl focus:outline-none bg-gray-50 text-[14px]">
                                 </div>
                             </div>
                             <div>

@@ -150,6 +150,9 @@ class LoanApplication(Base):
     # Raw application JSON (stored for reference)
     raw_application_json = Column(JSON, default={})
     
+    # Reviewer notes (lender decision notes)
+    reviewer_notes = Column(Text, default="")
+    
     # Relationships
     borrower = relationship("Borrower", back_populates="loan_applications")
     projects = relationship("Project", back_populates="loan_application")

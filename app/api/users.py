@@ -22,7 +22,6 @@ from dbms.schemas import (
 )
 from app.operations.auth import get_current_user, MockAuth, log_audit_action
 from app.utils.storage import save_upload_file, get_file_size, get_file_type, save_application_json, get_standardized_filename
-from app.utils.pdf_text import extract_text_from_file
 
 
 def get_or_default(value, default: Any = "none"):
@@ -63,7 +62,7 @@ def ensure_borrower_profile(db: Session, current_user: User, application) -> Bor
 
 
 def build_raw_application_json(application) -> Dict[str, Any]:
-    """Builds the raw application JSON with a structure matching the user's template."""
+    """Builds the raw application JSON with a structure matching the frontend expectations."""
 
     def get_optional(value):
         """Returns None if value is empty, otherwise the value."""
@@ -91,39 +90,48 @@ def build_raw_application_json(application) -> Dict[str, Any]:
 
     raw_json = {
         "organization_details": {
-            "organization_name": get_optional(application.org_name),
+            # Keys matching frontend expectations
+            "org_name": get_optional(application.org_name),
+            "sector": get_optional(application.sector),
+            "location": get_optional(application.location),
+            "website": get_optional(application.website),
+            "annual_revenue": application.annual_revenue or None,
+            "shareholder_entities": application.shareholder_entities or 0,
+            # Additional fields for reference
             "contact_email": get_optional(application.contact_email),
             "contact_phone": get_optional(application.contact_phone),
             "tax_id": get_optional(application.org_gst),
-            "Credit Score": get_optional(application.credit_score),
-            "headquarters_location": get_optional(application.location),
-            "website": get_optional(application.website),
-            "annual_revenue": application.annual_revenue or None,
+            "credit_score": get_optional(application.credit_score),
         },
         "project_information": {
-            "project_title": get_optional(application.project_name),
-            "project_sector": get_optional(application.sector),
-            "project_location": get_optional(application.project_location),
-            "project_pin_code": get_optional(application.project_pin_code),
+            # Keys matching frontend expectations
+            "project_name": get_optional(application.project_name),
             "project_type": get_optional(application.project_type),
-            "reporting_frequency": get_optional(application.reporting_frequency),
-            "existing_loans": "Yes" if application.has_existing_loan else "No",
+            "project_location": get_optional(application.project_location),
             "planned_start_date": get_optional(str(application.planned_start_date.date()) if hasattr(application.planned_start_date, 'date') else application.planned_start_date),
+            "loan_tenor": application.loan_tenor,
             "amount_requested": application.amount_requested or None,
             "currency": get_optional(application.currency),
-            "loan_tenor": application.loan_tenor,
+            "use_of_proceeds": get_optional(application.use_of_proceeds),
+            # Additional fields
+            "project_pin_code": get_optional(application.project_pin_code),
+            "reporting_frequency": get_optional(application.reporting_frequency),
+            "existing_loans": "Yes" if application.has_existing_loan else "No",
             "project_description": get_optional(application.project_description),
             "shareholder_entities": application.shareholder_entities,
             "shareholders_data": getattr(application, "shareholders_data", []),
         },
         "green_qualification_and_kpis": {
-            "use_of_proceeds_description": get_optional(application.use_of_proceeds),
+            # Keys matching frontend expectations
             "scope1_tco2": application.scope1_tco2 or 0.0,
             "scope2_tco2": application.scope2_tco2 or 0.0,
             "scope3_tco2": application.scope3_tco2 or 0.0,
-            "ghg_target_reduction": get_optional(application.target_reduction),
-            "ghg_baseline_year": get_optional(application.baseline_year),
-            "selected_kpis": application.kpi_metrics or [],
+            "baseline_year": get_optional(application.baseline_year),
+            "target_reduction": get_optional(application.target_reduction),
+            "reporting_frequency": get_optional(application.reporting_frequency),
+            "kpi_metrics": application.kpi_metrics or [],
+            # Additional fields
+            "use_of_proceeds_description": get_optional(application.use_of_proceeds),
         },
         "esg_compliance_questionnaire": full_questionnaire_data,
         "supporting_documents": {}
@@ -248,13 +256,10 @@ async def upload_document(loan_id: int, file: UploadFile = File(...), category: 
     loan_id_str = loan_app.loan_id
     filepath = await save_upload_file(file, loan_id, loan_id_str=loan_id_str, category=category)
     standardized_name = get_standardized_filename(category, file.filename)
-
+    
+    # Initialize text extraction variables
     text_extracted = None
-    try:
-        text_extracted = extract_text_from_file(filepath)
-        extraction_status = "completed" if text_extracted else "failed"
-    except Exception:
-        extraction_status = "pending"
+    extraction_status = "pending"
 
     document = Document(
         loan_id=loan_id,

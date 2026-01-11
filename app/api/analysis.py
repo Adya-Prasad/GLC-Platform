@@ -14,12 +14,168 @@ from dbms.orm_models import LoanApplication, Document, AuditLog, User, Applicati
 from app.operations.auth import get_current_user, log_audit_action
 from app.ai_services.config import (
     GLP_CATEGORIES, DNSH_CRITERIA, HIGH_RISK_SECTORS, 
-    MEDIUM_RISK_SECTORS, LOW_RISK_SECTORS, settings
+    MEDIUM_RISK_SECTORS, LOW_RISK_SECTORS, settings,
+    GLP_CORE_COMPONENTS, SLLP_CORE_COMPONENTS, SBTI_THRESHOLDS
 )
 from app.ai_services.esg_framework import esg_framework_engine
 from app.ai_services.scoring import esg_scoring_engine
+from app.ai_services.metrics import calculate_all_metrics
 
 router = APIRouter(prefix="/analysis", tags=["Analysis"])
+
+
+def assess_glp_compliance(loan_app, uop_result, dnsh_summary) -> Dict[str, Any]:
+    """
+    Assess compliance with LMA Green Loan Principles four core components.
+    Returns detailed compliance status for each component.
+    """
+    compliance = {
+        "overall_compliant": False,
+        "score": 0,
+        "max_score": 4,
+        "components": {}
+    }
+    
+    # 1. Use of Proceeds
+    uop_compliant = uop_result.get("is_valid", False)
+    compliance["components"]["use_of_proceeds"] = {
+        "name": "Use of Proceeds",
+        "compliant": uop_compliant,
+        "details": uop_result.get("assessment", ""),
+        "category": uop_result.get("glp_category", "Unknown"),
+        "confidence": uop_result.get("confidence", 0)
+    }
+    if uop_compliant:
+        compliance["score"] += 1
+    
+    # 2. Project Evaluation and Selection
+    has_objectives = bool(loan_app.use_of_proceeds and loan_app.project_description)
+    has_risk_mgmt = bool(loan_app.questionnaire_data)
+    eval_compliant = has_objectives and has_risk_mgmt
+    compliance["components"]["project_evaluation"] = {
+        "name": "Project Evaluation & Selection",
+        "compliant": eval_compliant,
+        "details": "Environmental objectives communicated" if has_objectives else "Missing project objectives",
+        "has_objectives": has_objectives,
+        "has_risk_management": has_risk_mgmt
+    }
+    if eval_compliant:
+        compliance["score"] += 1
+    
+    # 3. Management of Proceeds
+    # For this demo, we assume proceeds are tracked if loan is created
+    mgmt_compliant = True
+    compliance["components"]["management_of_proceeds"] = {
+        "name": "Management of Proceeds",
+        "compliant": mgmt_compliant,
+        "details": "Proceeds tracking established via platform",
+        "tracking_method": "Dedicated loan account tracking"
+    }
+    if mgmt_compliant:
+        compliance["score"] += 1
+    
+    # 4. Reporting
+    has_reporting = bool(loan_app.reporting_frequency)
+    has_kpis = bool(loan_app.kpi_metrics and len(loan_app.kpi_metrics) > 0)
+    has_baseline = bool(loan_app.baseline_year)
+    reporting_compliant = has_reporting and (has_kpis or has_baseline)
+    compliance["components"]["reporting"] = {
+        "name": "Reporting",
+        "compliant": reporting_compliant,
+        "details": f"Reporting frequency: {loan_app.reporting_frequency or 'Not specified'}",
+        "has_reporting_commitment": has_reporting,
+        "has_kpis": has_kpis,
+        "has_baseline": has_baseline
+    }
+    if reporting_compliant:
+        compliance["score"] += 1
+    
+    # Overall compliance
+    compliance["overall_compliant"] = compliance["score"] >= 3  # At least 3 of 4 components
+    compliance["percentage"] = round((compliance["score"] / compliance["max_score"]) * 100)
+    
+    return compliance
+
+
+def assess_sll_compliance(loan_app) -> Dict[str, Any]:
+    """
+    Assess compliance with LMA Sustainability-Linked Loan Principles.
+    """
+    compliance = {
+        "applicable": False,
+        "score": 0,
+        "max_score": 5,
+        "components": {}
+    }
+    
+    # Check if this is an SLL (has KPIs and targets)
+    has_kpis = bool(loan_app.kpi_metrics and len(loan_app.kpi_metrics) > 0)
+    has_targets = bool(loan_app.target_reduction)
+    
+    # Convert target_reduction to float safely
+    try:
+        target_reduction_val = float(loan_app.target_reduction) if loan_app.target_reduction else 0
+    except (ValueError, TypeError):
+        target_reduction_val = 0
+    
+    if not (has_kpis or has_targets):
+        compliance["applicable"] = False
+        compliance["message"] = "Not structured as Sustainability-Linked Loan"
+        return compliance
+    
+    compliance["applicable"] = True
+    
+    # 1. KPI Selection
+    kpi_compliant = has_kpis
+    compliance["components"]["kpi_selection"] = {
+        "name": "Selection of KPIs",
+        "compliant": kpi_compliant,
+        "kpis": loan_app.kpi_metrics or [],
+        "count": len(loan_app.kpi_metrics) if loan_app.kpi_metrics else 0
+    }
+    if kpi_compliant:
+        compliance["score"] += 1
+    
+    # 2. SPT Calibration
+    spt_compliant = has_targets and target_reduction_val >= 10  # At least 10% reduction
+    compliance["components"]["spt_calibration"] = {
+        "name": "Calibration of SPTs",
+        "compliant": spt_compliant,
+        "target_reduction": target_reduction_val,
+        "is_ambitious": target_reduction_val >= 20
+    }
+    if spt_compliant:
+        compliance["score"] += 1
+    
+    # 3. Loan Characteristics (margin adjustment - assumed for demo)
+    compliance["components"]["loan_characteristics"] = {
+        "name": "Loan Characteristics",
+        "compliant": True,
+        "details": "Margin adjustment mechanism available"
+    }
+    compliance["score"] += 1
+    
+    # 4. Reporting
+    reporting_compliant = bool(loan_app.reporting_frequency)
+    compliance["components"]["reporting"] = {
+        "name": "Reporting",
+        "compliant": reporting_compliant,
+        "frequency": loan_app.reporting_frequency
+    }
+    if reporting_compliant:
+        compliance["score"] += 1
+    
+    # 5. Verification (external review)
+    # For demo, check if documents include verification
+    compliance["components"]["verification"] = {
+        "name": "Verification",
+        "compliant": False,
+        "details": "External verification recommended"
+    }
+    
+    compliance["percentage"] = round((compliance["score"] / compliance["max_score"]) * 100)
+    
+    return compliance
 
 
 def get_sector_risk_level(sector: str) -> Dict[str, Any]:
@@ -98,6 +254,70 @@ def calculate_questionnaire_score(questionnaire_data: Dict) -> Dict[str, Any]:
         breakdown[key] = {"answer": questionnaire_data.get(key), "score": score}
     
     return {"total": max(0, total), "breakdown": breakdown, "max_score": 100}
+
+
+def calculate_dynamic_esg_score(
+    questionnaire_score: Dict,
+    glp_compliance: Dict,
+    dnsh_summary: Dict,
+    sector_risk: Dict,
+    uop_result: Dict,
+    loan_app
+) -> float:
+    """
+    Calculate a comprehensive ESG score based on multiple factors.
+    Returns a score from 0-100.
+    """
+    score = 0.0
+    max_score = 100.0
+    
+    # 1. Questionnaire Score (25 points max)
+    q_score = questionnaire_score.get("total", 0)
+    q_max = questionnaire_score.get("max_score", 100)
+    questionnaire_contribution = (q_score / q_max * 25) if q_max > 0 else 0
+    score += questionnaire_contribution
+    
+    # 2. GLP Compliance (25 points max)
+    glp_score = glp_compliance.get("score", 0)
+    glp_max = glp_compliance.get("max_score", 4)
+    glp_contribution = (glp_score / glp_max * 25) if glp_max > 0 else 0
+    score += glp_contribution
+    
+    # 3. DNSH Assessment (20 points max)
+    if dnsh_summary.get("overall_pass", False):
+        dnsh_contribution = 20
+    else:
+        passed = dnsh_summary.get("passed_count", 0)
+        total = dnsh_summary.get("passed_count", 0) + dnsh_summary.get("failed_count", 0) + dnsh_summary.get("unclear_count", 0)
+        dnsh_contribution = (passed / total * 15) if total > 0 else 5
+    score += dnsh_contribution
+    
+    # 4. Sector Risk (15 points max) - Lower risk = higher score
+    risk_level = sector_risk.get("level", "medium")
+    if risk_level == "low":
+        score += 15
+    elif risk_level == "medium":
+        score += 10
+    else:  # high
+        score += 5
+    
+    # 5. Use of Proceeds Validity (10 points max)
+    if uop_result.get("is_valid", False):
+        uop_confidence = uop_result.get("confidence", 0.5)
+        score += 10 * uop_confidence
+    
+    # 6. Data Completeness Bonus (5 points max)
+    completeness_fields = [
+        loan_app.scope1_tco2, loan_app.scope2_tco2, loan_app.scope3_tco2,
+        loan_app.baseline_year, loan_app.target_reduction, loan_app.kpi_metrics,
+        loan_app.reporting_frequency
+    ]
+    filled = sum(1 for f in completeness_fields if f)
+    completeness_bonus = (filled / len(completeness_fields)) * 5
+    score += completeness_bonus
+    
+    # Ensure score is within bounds
+    return round(min(max(score, 0), max_score), 1)
 
 
 def calculate_emissions_metrics(app_data: Dict) -> Dict[str, Any]:
@@ -192,8 +412,41 @@ async def get_full_analysis(
     # Calculate questionnaire score
     questionnaire_score = calculate_questionnaire_score(loan_app.questionnaire_data)
     
-    # Calculate emissions metrics
+    # Calculate emissions metrics (basic)
     emissions = calculate_emissions_metrics(project_data)
+    
+    # Calculate comprehensive sustainability metrics
+    sustainability_metrics = calculate_all_metrics(
+        scope1=loan_app.scope1_tco2 or 0,
+        scope2=loan_app.scope2_tco2 or 0,
+        scope3=loan_app.scope3_tco2 or 0,
+        annual_revenue=loan_app.annual_revenue or 0,
+        sector=loan_app.sector or "",
+        target_reduction=loan_app.target_reduction,
+        baseline_year=loan_app.baseline_year,
+        questionnaire_data=loan_app.questionnaire_data or {},
+        glp_eligible=loan_app.glp_eligibility or uop_result.get("is_valid", False),
+        sector_risk=sector_risk.get("level", "medium")
+    )
+    
+    # Assess LMA GLP Compliance (Four Core Components)
+    glp_compliance = assess_glp_compliance(loan_app, uop_result, dnsh_summary)
+    
+    # Assess SLL Compliance (if applicable)
+    sll_compliance = assess_sll_compliance(loan_app)
+    
+    # Calculate ESG Score dynamically if not stored
+    esg_score = loan_app.esg_score
+    if esg_score is None:
+        # Calculate composite ESG score based on multiple factors
+        esg_score = calculate_dynamic_esg_score(
+            questionnaire_score=questionnaire_score,
+            glp_compliance=glp_compliance,
+            dnsh_summary=dnsh_summary,
+            sector_risk=sector_risk,
+            uop_result=uop_result,
+            loan_app=loan_app
+        )
     
     # Build response
     return {
@@ -239,11 +492,14 @@ async def get_full_analysis(
             },
             "sector_risk": sector_risk,
             "questionnaire_score": questionnaire_score,
+            # LMA Compliance Assessment
+            "glp_compliance": glp_compliance,
+            "sll_compliance": sll_compliance,
         },
         
-        # Statistics tab data
+        # Statistics tab data - comprehensive metrics
         "statistics": {
-            "emissions": emissions,
+            **sustainability_metrics,
             "financial": {
                 "amount_requested": loan_app.amount_requested,
                 "currency": loan_app.currency,
@@ -252,11 +508,8 @@ async def get_full_analysis(
             },
             "kpi_metrics": loan_app.kpi_metrics or [],
             "reporting_frequency": loan_app.reporting_frequency,
-            "benchmarks": {
-                "sector_avg_esg": 65,  # Placeholder - would come from sector data
-                "portfolio_avg_esg": 72,  # Placeholder
-                "glp_threshold": 60,
-            },
+            "baseline_year": loan_app.baseline_year,
+            "target_reduction": loan_app.target_reduction,
         },
         
         # Documents
@@ -341,3 +594,48 @@ async def get_application_json(
     
     # Fall back to database
     return loan_app.raw_application_json or {}
+
+
+@router.get("/loan/{loan_id}/notes")
+async def get_reviewer_notes(
+    loan_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get reviewer notes for a loan application."""
+    
+    loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_id).first()
+    if not loan_app:
+        raise HTTPException(status_code=404, detail="Loan application not found")
+    
+    return {
+        "loan_id": loan_id,
+        "notes": loan_app.reviewer_notes or ""
+    }
+
+
+@router.post("/loan/{loan_id}/notes")
+async def save_reviewer_notes(
+    loan_id: int,
+    notes: str = Query(..., description="Reviewer notes text"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Save reviewer notes for a loan application."""
+    
+    loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_id).first()
+    if not loan_app:
+        raise HTTPException(status_code=404, detail="Loan application not found")
+    
+    loan_app.reviewer_notes = notes
+    
+    # Log the action
+    user_id = current_user.id if current_user else None
+    log_audit_action(
+        db, "LoanApplication", loan_id, "notes_saved", user_id,
+        {"notes_length": len(notes)}
+    )
+    
+    db.commit()
+    
+    return {"success": True, "loan_id": loan_id, "message": "Notes saved successfully"}

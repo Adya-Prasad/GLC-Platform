@@ -127,3 +127,16 @@ textarea:focus {
     outline: none !important;
 }
 
+/* info header */
+.info-header{
+    background: linear-gradient(135deg,
+            rgba(255, 255, 255, 0.856) 0%,
+            rgba(206, 250, 209, 0.2) 50%,
+            rgba(252, 255, 253, 0.226) 100%);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 10px 20px rgba(55, 68, 57, 0.18);
+    padding: 12px;
+}
+
