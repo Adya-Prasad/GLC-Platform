@@ -1,0 +1,40 @@
+# Core Dependencies - Optimized for Render deployment
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# Web Framework
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+pydantic-settings
+
+# Database
+sqlalchemy
+
+# NLP & ML - CPU only for deployment
+sentence-transformers
+transformers
+torch --index-url https://download.pytorch.org/whl/cpu
+
+# Vector Search  
+faiss-cpu
+
+# Docs Processing
+pdfminer.six
+PyPDF2
+python-docx
+pdfplumber
+
+# Docs Report Generation
+reportlab
+
+# Utilities
+numpy
+pandas
+python-jose
+passlib
+aiofiles
+python-dotenv
+
+# API
+httpx
