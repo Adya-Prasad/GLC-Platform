@@ -10,12 +10,12 @@
 
 
 Table of Content
+## Table of Content
 <p align="center">
-  <a href="#-quick-demo">Quick Demo</a> •
-  <a href="#-inspiration">Inspiration</a> •
-  <a href="#-how-I-built-it">How I Built It</a> •
-  <a href="#-key-features">Features</a> •
-  <a href="#-for-judges">For Judges</a>
+  <a href="#inspiration">Inspiration</a> •
+  <a href="#key-features">KEY FEATURES</a> •
+  <a href="#development-roadmap">Development Roadmap</a> •
+  <a href="#quick-start-local-setup">Quick Start (Local Setup)</a> •
 </p>
 
 ---
