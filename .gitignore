@@ -50,7 +50,13 @@ Thumbs.db
 # user
 todo.md
 prompt.md
+
+# Loan assets - exclude large files, keep structure
 loan_assets/*
 !loan_assets/init.txt
+
 vector_db/*
 !vector_db/init.txt
+
+# Database excluded - will be created on deploy
+# glc_data.db
