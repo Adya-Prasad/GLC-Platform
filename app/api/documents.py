@@ -45,7 +45,7 @@ async def analyze_loan_documents(loan_id: int):
 async def chat_with_documents(request: ChatRequest):
     """
     Smart Q&A about loan documents.
-    Uses keyword extraction for extraction questions, QA model for specific questions.
+    Uses smart extraction for meaningful responses.
     """
     try:
         from app.ai_services.config import settings
@@ -83,68 +83,61 @@ async def chat_with_documents(request: ChatRequest):
         
         message_lower = request.message.lower()
         
+        # Get clean sentences from document
+        sentences = esg_agent._get_clean_sentences(text)
+        
         # Keyword mappings for extraction-type questions
-        extraction_keywords = {
-            "financial": ["revenue", "profit", "financial", "turnover", "income", "earnings", "growth", "fiscal", "million", "billion", "sales", "operating", "assets", "capital", "investment"],
-            "waste": ["waste", "recycling", "circular", "disposal", "landfill", "reuse", "reduce", "recycle", "hazardous", "e-waste", "plastic"],
-            "labor": ["employee", "workforce", "staff", "labor", "workers", "training", "safety", "diversity", "inclusion", "human resources", "workplace", "occupational", "talent", "hiring"],
-            "employee": ["employee", "workforce", "staff", "labor", "workers", "training", "safety", "diversity", "inclusion", "human resources", "workplace", "occupational", "talent", "hiring"],
-            "renewable": ["renewable", "solar", "wind", "clean energy", "green energy", "hydro", "biomass", "energy efficiency", "carbon neutral", "net zero", "photovoltaic", "decarbonization"],
-            "energy": ["renewable", "solar", "wind", "clean energy", "green energy", "hydro", "biomass", "energy efficiency", "power", "electricity", "kwh", "mwh"],
-            "environment": ["environment", "pollution", "emission", "carbon", "climate", "biodiversity", "conservation", "sustainability", "eco", "green", "ghg", "co2", "greenhouse"],
-            "pollution": ["pollution", "emission", "carbon", "climate", "air quality", "water quality", "contamination", "effluent", "discharge"],
-            "emission": ["emission", "carbon", "co2", "greenhouse", "ghg", "scope 1", "scope 2", "scope 3", "tco2"],
-            "carbon": ["carbon", "emission", "co2", "greenhouse", "ghg", "footprint", "neutral", "offset"],
-            "water": ["water", "wastewater", "conservation", "effluent", "discharge", "consumption", "recycled water"],
-            "sustainability": ["sustainability", "sustainable", "esg", "environmental", "social", "governance", "green", "responsible"],
+        keyword_map = {
+            "financial": ["revenue", "profit", "financial performance", "turnover", "income", "earnings", "growth"],
+            "waste": ["waste management", "recycling", "waste reduction", "circular economy", "disposal"],
+            "labor": ["employee", "workforce", "training", "safety", "diversity", "workplace"],
+            "employee": ["employee", "workforce", "training", "safety", "diversity", "workplace"],
+            "renewable": ["renewable energy", "solar", "wind", "clean energy", "green energy"],
+            "energy": ["renewable energy", "solar", "wind", "energy efficiency", "power"],
+            "environment": ["environmental", "pollution", "emission", "climate", "biodiversity"],
+            "emission": ["emission", "carbon", "co2", "greenhouse", "ghg", "scope"],
+            "carbon": ["carbon", "emission", "co2", "greenhouse", "climate action"],
+            "sustainability": ["sustainability", "sustainable", "esg", "environmental"],
         }
         
-        # Check if this is an extraction-type question
+        # Find matching keywords
         matched_keywords = []
-        for trigger, keywords in extraction_keywords.items():
+        for trigger, keywords in keyword_map.items():
             if trigger in message_lower:
                 matched_keywords.extend(keywords)
         
+        # If no specific keywords matched, use words from the question
+        if not matched_keywords:
+            matched_keywords = [w for w in message_lower.split() if len(w) > 4][:5]
+        
         if matched_keywords:
-            # Use keyword extraction (same as LMA Framework Questions)
-            extracted = esg_agent._extract_section(text, list(set(matched_keywords)), max_length=1500)
+            response = esg_agent._extract_meaningful_content(sentences, matched_keywords, max_sentences=3)
             
-            if "not clearly stated" not in extracted.lower():
+            if "not found" not in response.lower():
                 return ChatResponse(
-                    response=extracted,
-                    confidence=0.85,
-                    sources=[{"text_snippet": extracted[:300], "source": doc_source, "score": 0.85}]
+                    response=response,
+                    confidence=0.8,
+                    sources=[{"text_snippet": response[:200], "source": doc_source, "score": 0.8}]
                 )
         
-        # Fallback to QA model for specific questions
+        # Fallback to QA model
         esg_agent._ensure_models()
-        context = text[:5000]  # Increased context
+        context = esg_agent._clean_text(text)[:4000]
         
         result = esg_agent._extractor(
             question=request.message,
             context=context
         )
         
-        if result['score'] > 0.15:
+        if result['score'] > 0.2:
             return ChatResponse(
                 response=result['answer'],
                 confidence=float(result['score']),
                 sources=[{"text_snippet": context[:200], "source": doc_source, "score": result['score']}]
             )
         
-        # If QA fails, try broader keyword search from the question itself
-        question_words = [w for w in message_lower.split() if len(w) > 3]
-        if question_words:
-            extracted = esg_agent._extract_section(text, question_words[:5], max_length=1000)
-            if "not clearly stated" not in extracted.lower():
-                return ChatResponse(
-                    response=extracted,
-                    confidence=0.6,
-                    sources=[{"text_snippet": extracted[:300], "source": doc_source, "score": 0.6}]
-                )
-        
         return ChatResponse(
-            response="I couldn't find specific information about that in the sustainability report. Try asking about financial performance, emissions, renewable energy, waste management, or employee practices.",
+            response="I couldn't find specific information about that in the sustainability report. Try asking about emissions, renewable energy, sustainability targets, or employee practices.",
             confidence=0.0,
             sources=[]
         )
@@ -214,55 +207,135 @@ async def save_ai_report(loan_id: int):
         loan_dir.mkdir(parents=True, exist_ok=True)
         pdf_path = loan_dir / "ai_retrieval_insights.pdf"
         
-        # Build HTML content for PDF
-        html_content = _build_ai_report_html(loan_app, analysis)
-        
-        # Generate PDF using WeasyPrint
+        # Generate PDF using ReportLab (no system dependencies)
         try:
-            from weasyprint import HTML, CSS
+            from reportlab.lib import colors
+            from reportlab.lib.pagesizes import A4
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.units import inch, cm
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+            from reportlab.lib.enums import TA_CENTER, TA_LEFT
             
-            css = CSS(string='''
-                @page { size: A4; margin: 1.5cm; }
-                body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.5; color: #333; }
-                .header { background: linear-gradient(135deg, #4f46e5, #2563eb); color: white; padding: 20px; margin: -1.5cm -1.5cm 20px -1.5cm; }
-                .header h1 { margin: 0; font-size: 24pt; }
-                .header p { margin: 5px 0 0 0; opacity: 0.9; }
-                .meta-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
-                .meta-grid { display: flex; flex-wrap: wrap; gap: 20px; }
-                .meta-item { flex: 1; min-width: 150px; }
-                .meta-label { font-size: 9pt; color: #64748b; text-transform: uppercase; }
-                .meta-value { font-size: 12pt; font-weight: bold; color: #1e293b; }
-                .section { margin-bottom: 25px; page-break-inside: avoid; }
-                .section-title { font-size: 14pt; font-weight: bold; color: #4f46e5; border-bottom: 2px solid #4f46e5; padding-bottom: 5px; margin-bottom: 15px; }
-                .point-card { background: #fefce8; border-left: 4px solid #eab308; padding: 10px 15px; margin-bottom: 10px; }
-                .point-critical { background: #fef2f2; border-left-color: #ef4444; }
-                .point-high { background: #fffbeb; border-left-color: #f59e0b; }
-                .point-medium { background: #f0fdf4; border-left-color: #22c55e; }
-                .point-title { font-weight: bold; color: #1e293b; }
-                .point-desc { font-size: 10pt; color: #475569; margin-top: 5px; }
-                .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 8pt; font-weight: bold; }
-                .badge-critical { background: #fee2e2; color: #dc2626; }
-                .badge-high { background: #fef3c7; color: #d97706; }
-                .badge-medium { background: #dcfce7; color: #16a34a; }
-                .qa-item { background: #f1f5f9; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
-                .qa-question { font-weight: bold; color: #1e293b; margin-bottom: 8px; }
-                .qa-answer { color: #475569; font-size: 10pt; }
-                table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-                th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-                th { background: #f1f5f9; font-weight: bold; color: #475569; }
-                .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 9pt; color: #94a3b8; text-align: center; }
-            ''')
+            # Create PDF document
+            doc = SimpleDocTemplate(str(pdf_path), pagesize=A4, 
+                                   rightMargin=1.5*cm, leftMargin=1.5*cm,
+                                   topMargin=1.5*cm, bottomMargin=1.5*cm)
             
-            HTML(string=html_content).write_pdf(str(pdf_path), stylesheets=[css])
+            # Styles
+            styles = getSampleStyleSheet()
+            styles.add(ParagraphStyle(name='Title2', fontSize=20, textColor=colors.HexColor('#367a23'), 
+                                     spaceAfter=12, fontName='Helvetica-Bold'))
+            styles.add(ParagraphStyle(name='Subtitle', fontSize=12, textColor=colors.HexColor('#64748b'),
+                                     spaceAfter=20))
+            styles.add(ParagraphStyle(name='SectionTitle', fontSize=14, textColor=colors.HexColor('#367a23'),
+                                     fontName='Helvetica-Bold', spaceAfter=10, spaceBefore=15))
+            styles.add(ParagraphStyle(name='BodyText2', fontSize=10, textColor=colors.HexColor('#374151'),
+                                     spaceAfter=8, leading=14))
+            styles.add(ParagraphStyle(name='Question', fontSize=11, textColor=colors.HexColor('#367a23'),
+                                     fontName='Helvetica-Bold', spaceAfter=6))
+            styles.add(ParagraphStyle(name='Answer', fontSize=10, textColor=colors.HexColor('#475569'),
+                                     spaceAfter=12, leading=14, leftIndent=10))
+            styles.add(ParagraphStyle(name='Footer', fontSize=8, textColor=colors.HexColor('#94a3b8'),
+                                     alignment=TA_CENTER))
+            
+            # Build content
+            story = []
+            
+            # Header
+            story.append(Paragraph("🌿 GLC Platform", styles['Title2']))
+            story.append(Paragraph("AI Retrieval Insights Report", styles['Subtitle']))
+            story.append(HRFlowable(width="100%", thickness=2, color=colors.HexColor('#367a23')))
+            story.append(Spacer(1, 0.3*inch))
+            
+            # Metadata table
+            project_name = loan_app.project_name or "N/A"
+            org_name = loan_app.org_name or "N/A"
+            loan_amount = f"${loan_app.amount_requested:,.2f}" if loan_app.amount_requested else "N/A"
+            loan_id_str = f"LOAN_{loan_app.id}"
+            confidence = f"{analysis.get('confidence', 0) * 100:.0f}%"
+            pages = str(analysis.get('pages_analyzed', 0))
+            
+            meta_data = [
+                ['Loan ID', loan_id_str, 'Project', project_name],
+                ['Organization', org_name, 'Loan Amount', loan_amount],
+                ['Confidence', confidence, 'Pages Analyzed', pages],
+            ]
+            meta_table = Table(meta_data, colWidths=[1.5*inch, 2*inch, 1.5*inch, 2*inch])
+            meta_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f1f5f9')),
+                ('BACKGROUND', (2, 0), (2, -1), colors.HexColor('#f1f5f9')),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1e293b')),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('PADDING', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+            ]))
+            story.append(meta_table)
+            story.append(Spacer(1, 0.3*inch))
+            
+            # Executive Summary
+            if analysis.get('summary'):
+                story.append(Paragraph("📄 Executive Summary", styles['SectionTitle']))
+                story.append(Paragraph(analysis['summary'], styles['BodyText2']))
+                story.append(Spacer(1, 0.2*inch))
+            
+            # Essential Points
+            if analysis.get('essential_points'):
+                story.append(Paragraph("💡 Key Findings", styles['SectionTitle']))
+                for point in analysis['essential_points']:
+                    importance = point.get('importance', 'medium').upper()
+                    title = point.get('title', '')
+                    desc = point.get('description', '')
+                    story.append(Paragraph(f"<b>[{importance}] {title}</b>", styles['BodyText2']))
+                    story.append(Paragraph(desc, styles['Answer']))
+                story.append(Spacer(1, 0.2*inch))
+            
+            # Quantitative Data
+            if analysis.get('quantitative_data'):
+                story.append(Paragraph("📊 Extracted Metrics", styles['SectionTitle']))
+                quant_data = [['Metric', 'Value', 'Category']]
+                for q in analysis['quantitative_data']:
+                    quant_data.append([q.get('metric', ''), f"{q.get('value', '')} {q.get('unit', '')}", q.get('category', '')])
+                quant_table = Table(quant_data, colWidths=[2.5*inch, 2*inch, 1.5*inch])
+                quant_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e9ffe3')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#0d7811')),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 9),
+                    ('PADDING', (0, 0), (-1, -1), 8),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+                    ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+                ]))
+                story.append(quant_table)
+                story.append(Spacer(1, 0.2*inch))
+            
+            # LMA Framework Questions
+            if analysis.get('extraction_answers'):
+                story.append(Paragraph("📋 LMA Framework Analysis", styles['SectionTitle']))
+                for question, answer in analysis['extraction_answers'].items():
+                    story.append(Paragraph(f"❓ {question}", styles['Question']))
+                    story.append(Paragraph(answer, styles['Answer']))
+                story.append(Spacer(1, 0.2*inch))
+            
+            # Footer
+            story.append(Spacer(1, 0.3*inch))
+            story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#e2e8f0')))
+            story.append(Spacer(1, 0.1*inch))
+            story.append(Paragraph(f"Generated by GLC Platform AI Agent | {datetime.now().strftime('%Y-%m-%d %H:%M')} | Confidence: {confidence}", styles['Footer']))
+            
+            # Build PDF
+            doc.build(story)
             logger.info(f"AI report PDF saved to {pdf_path}")
             
-        except ImportError:
-            # Fallback: save as HTML if WeasyPrint not available
+        except ImportError as e:
+            logger.error(f"ReportLab not available: {e}")
+            # Fallback: save as HTML
+            html_content = _build_ai_report_html(loan_app, analysis)
             html_path = loan_dir / "ai_retrieval_insights.html"
             with open(html_path, 'w', encoding='utf-8') as f:
                 f.write(html_content)
-            logger.warning("WeasyPrint not available, saved as HTML instead")
-            return {"success": True, "message": "Report saved as HTML (PDF generation requires WeasyPrint)", "path": str(html_path)}
+            return {"success": True, "message": "Report saved as HTML (install reportlab for PDF)", "path": str(html_path)}
         
         # Register document in database
         existing_doc = db.query(Document).filter(

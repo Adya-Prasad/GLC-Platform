@@ -1,17 +1,18 @@
 """
-ESG Document Summarizer Agent
-Lightweight, fast document analysis for Green Loan compliance.
-Extracts key ESG metrics and facts from sustainability reports.
+ESG Document Summarizer Agent - v2
+Smart, meaningful document analysis for Green Loan compliance.
+Extracts clean, readable ESG insights from sustainability reports.
 """
 
 import logging
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
-# ============ DATA CLASSES ============
+
 @dataclass
 class ESGAnalysisResult:
     """Result of ESG document analysis."""
@@ -28,8 +29,8 @@ class ESGAnalysisResult:
 
 class ESGAgent:
     """
-    Lightweight ESG document analyzer.
-    Uses smaller models for faster inference.
+    Smart ESG document analyzer.
+    Focuses on extracting meaningful, readable insights.
     """
     
     def __init__(self):
@@ -45,18 +46,16 @@ class ESGAgent:
         try:
             from transformers import pipeline
             
-            # Use smaller, faster model for summarization
             self.logger.info("Loading summarization model...")
             self._summarizer = pipeline(
                 "summarization",
                 model="facebook/bart-large-cnn",
-                device=-1,  # CPU
+                device=-1,
                 max_length=150,
                 min_length=40,
                 do_sample=False
             )
             
-            # Use QA model for metric extraction
             self.logger.info("Loading QA model...")
             self._extractor = pipeline(
                 "question-answering",
@@ -87,7 +86,6 @@ class ESGAgent:
         except Exception as e:
             self.logger.warning(f"pdfminer failed: {e}")
         
-        # Fallback to PyPDF2
         try:
             import PyPDF2
             with open(filepath, 'rb') as f:
@@ -113,306 +111,279 @@ class ESGAgent:
             self.logger.error(f"DOCX extraction failed: {e}")
             return "", 0
     
-    def _chunk_text(self, text: str, chunk_size: int = 1000) -> List[str]:
-        """Split text into chunks for processing."""
-        words = text.split()
-        chunks = []
+    def _clean_text(self, text: str) -> str:
+        """Clean raw text for better processing."""
+        # Remove excessive whitespace and newlines
+        text = re.sub(r'\n+', ' ', text)
+        text = re.sub(r'\s+', ' ', text)
         
-        for i in range(0, len(words), chunk_size):
-            chunk = ' '.join(words[i:i + chunk_size])
-            if len(chunk) > 100:  # Skip tiny chunks
-                chunks.append(chunk)
-        
-        return chunks
-    
-    def _extract_metrics(self, text: str) -> List[Dict[str, str]]:
-        """Extract quantitative metrics from text using pattern matching."""
-        import re
-        
-        metrics = []
-        
-        # Patterns for common ESG metrics - improved to avoid garbage
-        patterns = [
-            (r'(?:scope\s*1|scope1)[:\s]+(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(?:tCO2e?|tonnes?)', 'Scope 1 Emissions', 'tCO2e'),
-            (r'(?:scope\s*2|scope2)[:\s]+(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(?:tCO2e?|tonnes?)', 'Scope 2 Emissions', 'tCO2e'),
-            (r'(?:scope\s*3|scope3)[:\s]+(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(?:tCO2e?|tonnes?)', 'Scope 3 Emissions', 'tCO2e'),
-            (r'(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(?:tCO2e?|tonnes?\s+CO2)', 'Total Emissions', 'tCO2e'),
-            (r'(\d{1,2}(?:\.\d+)?)\s*%\s*(?:renewable|clean\s+energy)', 'Renewable Energy', '%'),
-            (r'(\d{1,3}(?:,\d{3})*)\s*(?:MW|GW)\s*(?:renewable|solar|wind|capacity)', 'Renewable Capacity', 'MW'),
-            (r'(?:revenue|turnover)[:\s]*(?:USD|INR|EUR|\$|₹|€)?\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(?:million|billion|mn|bn|cr|crore)?', 'Revenue', 'USD'),
-            (r'(\d{1,2}(?:\.\d+)?)\s*%\s*(?:reduction|decrease|avoided)', 'Emission Reduction', '%'),
-            (r'(\d{1,3}(?:,\d{3})*)\s*(?:employees?|workforce|staff)', 'Employees', 'people'),
-        ]
-        
-        for pattern, metric_name, unit in patterns:
-            matches = re.findall(pattern, text, re.IGNORECASE)
-            for match in matches[:2]:  # Limit to 2 per category
-                value = match.replace(',', '') if isinstance(match, str) else str(match)
-                # Skip garbage values (too long numbers)
-                if len(value) < 15:
-                    metrics.append({
-                        'metric': metric_name,
-                        'value': value,
-                        'unit': unit,
-                        'category': metric_name.lower().replace(' ', '_')
-                    })
-        
-        # Remove duplicates
-        seen = set()
-        unique_metrics = []
-        for m in metrics:
-            key = f"{m['metric']}_{m['value']}"
-            if key not in seen:
-                seen.add(key)
-                unique_metrics.append(m)
-        
-        return unique_metrics[:8]  # Limit total metrics
-    
-    def _clean_extracted_text(self, text: str) -> str:
-        """Clean and format extracted text for better readability."""
-        import re
-        
-        if not text or "not clearly stated" in text.lower():
-            return text
-        
-        # Remove excessive whitespace
-        text = re.sub(r'\s+', ' ', text).strip()
+        # Remove page numbers and headers
+        text = re.sub(r'\bPage\s*\d+\b', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'\bPg\s*\d+\b', '', text, flags=re.IGNORECASE)
         
         # Remove URLs
         text = re.sub(r'https?://\S+', '', text)
         
-        # Remove page numbers and headers like "Pg 03", "Page 12"
-        text = re.sub(r'\bPg\s*\d+\b', '', text, flags=re.IGNORECASE)
-        text = re.sub(r'\bPage\s*\d+\b', '', text, flags=re.IGNORECASE)
-        
-        # Remove standalone numbers that look like page refs
-        text = re.sub(r'\s+\d{1,2}\s+(?=\d{1,2}\s+)', ' ', text)
-        
-        # Remove repeated words/phrases
-        words = text.split()
-        cleaned_words = []
-        prev_word = ""
-        for word in words:
-            if word.lower() != prev_word.lower():
-                cleaned_words.append(word)
-            prev_word = word
-        text = ' '.join(cleaned_words)
-        
-        # Ensure proper sentence spacing
-        text = re.sub(r'\.(?=[A-Z])', '. ', text)
-        
-        # Remove garbage characters
-        text = re.sub(r'[^\w\s.,;:!?\'\"()\-–—%$€£₹@&/]', '', text)
-        
-        # Trim to reasonable length and end at sentence boundary
-        if len(text) > 800:
-            # Find last sentence end before 800 chars
-            last_period = text[:800].rfind('.')
-            if last_period > 400:
-                text = text[:last_period + 1]
-            else:
-                text = text[:800] + '...'
+        # Remove standalone numbers (likely from tables/charts)
+        text = re.sub(r'(?<!\w)\d{4,}(?!\w)', '', text)
         
         return text.strip()
     
-    def _extract_section(self, text: str, keywords: List[str], max_length: int = 1500) -> str:
-        """Extract relevant section from text based on keywords - returns longer, comprehensive responses."""
-        import re
+    def _get_clean_sentences(self, text: str) -> List[str]:
+        """Split text into clean, meaningful sentences."""
+        text = self._clean_text(text)
         
-        # Clean text
-        clean_text = re.sub(r'\s+', ' ', text.replace('\n', ' ')).strip()
-        sentences = re.split(r'(?<=[.!?])\s+', clean_text)
+        # Split on sentence boundaries
+        sentences = re.split(r'(?<=[.!?])\s+', text)
         
-        relevant_sentences = []
-        context_buffer = []
-        
-        for i, sentence in enumerate(sentences):
-            sentence = sentence.strip()
-            if len(sentence) < 15:
+        clean_sentences = []
+        for s in sentences:
+            s = s.strip()
+            # Filter out garbage sentences
+            if len(s) < 30:  # Too short
+                continue
+            if len(s) > 500:  # Too long, likely merged
+                continue
+            if re.match(r'^[\d\s,.\-]+$', s):  # Only numbers
+                continue
+            if s.count(' ') < 3:  # Not enough words
+                continue
+            # Check for too many numbers (likely table data)
+            num_count = len(re.findall(r'\d+', s))
+            word_count = len(s.split())
+            if num_count > word_count * 0.5:  # More than 50% numbers
                 continue
             
+            clean_sentences.append(s)
+        
+        return clean_sentences
+    
+    def _extract_meaningful_content(self, sentences: List[str], keywords: List[str], max_sentences: int = 3) -> str:
+        """Extract meaningful sentences based on keywords."""
+        relevant = []
+        
+        for sentence in sentences:
             sentence_lower = sentence.lower()
             
-            # Check if sentence contains any keyword
+            # Check if sentence contains keywords
             if any(kw in sentence_lower for kw in keywords):
-                # Add previous sentence for context if available
-                if context_buffer and context_buffer[-1] not in relevant_sentences:
-                    relevant_sentences.append(context_buffer[-1])
-                
-                relevant_sentences.append(sentence)
-                
-                # Add next 2 sentences for more context
-                for j in range(1, 3):
-                    if i + j < len(sentences) and len(sentences[i + j].strip()) > 15:
-                        next_sent = sentences[i + j].strip()
-                        if next_sent not in relevant_sentences:
-                            relevant_sentences.append(next_sent)
-            
-            # Keep track of recent sentences for context
-            context_buffer.append(sentence)
-            if len(context_buffer) > 2:
-                context_buffer.pop(0)
-            
-            # Stop if we have enough content
-            if len(' '.join(relevant_sentences)) > max_length:
-                break
+                # Additional quality checks
+                if self._is_quality_sentence(sentence):
+                    relevant.append(sentence)
+                    if len(relevant) >= max_sentences:
+                        break
         
-        if relevant_sentences:
-            # Remove duplicates while preserving order
-            seen = set()
-            unique = []
-            for s in relevant_sentences:
-                if s not in seen:
-                    seen.add(s)
-                    unique.append(s)
-            
-            result = ' '.join(unique[:10])  # Max 10 sentences
-            # Clean the result for better readability
-            return self._clean_extracted_text(result) if result else "Information not clearly stated in the document."
+        if not relevant:
+            return "Information not found in the document."
         
-        return "Information not clearly stated in the document."
+        # Join with proper spacing
+        result = ' '.join(relevant)
+        
+        # Ensure it ends properly
+        if not result.endswith('.'):
+            result += '.'
+        
+        return result
+    
+    def _is_quality_sentence(self, sentence: str) -> bool:
+        """Check if a sentence is meaningful and readable."""
+        # Must have reasonable length
+        if len(sentence) < 40 or len(sentence) > 400:
+            return False
+        
+        # Must have enough words
+        words = sentence.split()
+        if len(words) < 6:
+            return False
+        
+        # Should not be mostly numbers
+        num_count = len(re.findall(r'\d+', sentence))
+        if num_count > len(words) * 0.4:
+            return False
+        
+        # Should have proper sentence structure (starts with capital, has verb-like words)
+        if not sentence[0].isupper():
+            return False
+        
+        # Check for common garbage patterns
+        garbage_patterns = [
+            r'^\d+\s*$',  # Just numbers
+            r'^[A-Z]{2,}\s*$',  # Just acronyms
+            r'Figure\s*\d+',  # Figure references
+            r'Table\s*\d+',  # Table references
+            r'See\s+annexure',  # References
+            r'^\s*[-–—]\s*',  # Bullet points without content
+        ]
+        for pattern in garbage_patterns:
+            if re.search(pattern, sentence, re.IGNORECASE):
+                return False
+        
+        return True
+    
+    def _extract_metrics_smart(self, text: str) -> List[Dict[str, str]]:
+        """Extract meaningful quantitative metrics."""
+        metrics = []
+        sentences = self._get_clean_sentences(text)
+        
+        # Define metric patterns with context requirements
+        metric_patterns = [
+            {
+                'name': 'Total Emissions',
+                'pattern': r'(?:total|overall)\s+(?:emissions?|carbon)\s*(?:of|:)?\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(?:tCO2e?|tonnes?)',
+                'unit': 'tCO2e',
+                'category': 'emissions'
+            },
+            {
+                'name': 'Scope 1 Emissions',
+                'pattern': r'scope\s*1\s*(?:emissions?)?\s*(?:of|:)?\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(?:tCO2e?|tonnes?)',
+                'unit': 'tCO2e',
+                'category': 'emissions'
+            },
+            {
+                'name': 'Scope 2 Emissions',
+                'pattern': r'scope\s*2\s*(?:emissions?)?\s*(?:of|:)?\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(?:tCO2e?|tonnes?)',
+                'unit': 'tCO2e',
+                'category': 'emissions'
+            },
+            {
+                'name': 'Renewable Energy',
+                'pattern': r'(\d{1,3}(?:\.\d+)?)\s*%\s*(?:of\s+)?(?:energy|electricity|power)\s+(?:from\s+)?renewable',
+                'unit': '%',
+                'category': 'energy'
+            },
+            {
+                'name': 'Emission Reduction Target',
+                'pattern': r'(?:reduce|reduction|cut)\s+(?:emissions?\s+)?(?:by\s+)?(\d{1,3}(?:\.\d+)?)\s*%',
+                'unit': '%',
+                'category': 'target'
+            },
+            {
+                'name': 'Employees',
+                'pattern': r'(\d{1,3}(?:,\d{3})*)\s+(?:employees?|staff|workforce)',
+                'unit': 'people',
+                'category': 'social'
+            },
+        ]
+        
+        for mp in metric_patterns:
+            match = re.search(mp['pattern'], text, re.IGNORECASE)
+            if match:
+                value = match.group(1).replace(',', '')
+                # Validate the value is reasonable
+                try:
+                    num_val = float(value)
+                    if num_val > 0 and num_val < 1000000000:  # Reasonable range
+                        metrics.append({
+                            'metric': mp['name'],
+                            'value': value,
+                            'unit': mp['unit'],
+                            'category': mp['category']
+                        })
+                except:
+                    pass
+        
+        return metrics[:6]  # Limit to 6 metrics
     
     def _extract_answers(self, text: str) -> Dict[str, str]:
-        """Extract answers to 5 key ESG questions using keyword-based extraction."""
+        """Extract answers to 5 key ESG questions with meaningful content."""
+        sentences = self._get_clean_sentences(text)
         
-        # 5 questions with comprehensive keywords for better extraction
         questions = {
-            "Financial Performance": {
-                "keywords": ["revenue", "profit", "financial", "turnover", "income", "earnings", "growth", "fiscal", "fy", "million", "billion", "crore", "sales", "operating", "net income", "gross", "ebitda", "assets", "capital", "investment"],
-                "question": "Extract financial statements or financial performance information"
+            "Extract financial statements or financial performance information": {
+                "keywords": ["revenue", "profit", "financial performance", "turnover", "income", "earnings", "growth rate", "fiscal year", "annual report"],
+                "max_sentences": 2
             },
-            "Waste Management": {
-                "keywords": ["waste", "recycling", "circular", "disposal", "landfill", "reuse", "reduce", "recycle", "hazardous waste", "e-waste", "solid waste", "waste reduction", "zero waste", "waste treatment", "composting", "plastic"],
-                "question": "Extract waste management practices"
+            "Extract waste management practices": {
+                "keywords": ["waste management", "recycling", "waste reduction", "circular economy", "zero waste", "waste disposal", "hazardous waste"],
+                "max_sentences": 2
             },
-            "Labor & Employees": {
-                "keywords": ["employee", "workforce", "staff", "labor", "workers", "training", "safety", "diversity", "inclusion", "human resources", "hr", "workplace", "occupational", "health and safety", "talent", "hiring", "retention", "benefits", "compensation"],
-                "question": "Extract labor and employee practices"
+            "Extract labor and employee practices": {
+                "keywords": ["employee", "workforce", "training program", "safety", "diversity", "inclusion", "workplace", "human resources", "staff development"],
+                "max_sentences": 2
             },
-            "Renewable Energy": {
-                "keywords": ["renewable", "solar", "wind", "clean energy", "green energy", "hydro", "biomass", "energy efficiency", "carbon neutral", "net zero", "photovoltaic", "pv", "wind power", "geothermal", "energy transition", "decarbonization", "green power"],
-                "question": "Extract renewable energy usage or plans"
+            "Extract renewable energy usage or plans": {
+                "keywords": ["renewable energy", "solar", "wind power", "clean energy", "green energy", "energy efficiency", "carbon neutral", "net zero"],
+                "max_sentences": 2
             },
-            "Environmental Protection": {
-                "keywords": ["environment", "pollution", "emission", "carbon", "climate", "biodiversity", "conservation", "sustainability", "eco", "green", "ghg", "co2", "greenhouse", "air quality", "water quality", "soil", "ecosystem", "nature", "environmental impact", "mitigation"],
-                "question": "Extract environmental protection and pollution control measures"
+            "Extract environmental protection and pollution control measures": {
+                "keywords": ["environmental protection", "pollution control", "emission reduction", "climate action", "biodiversity", "conservation", "sustainability initiative"],
+                "max_sentences": 2
             }
         }
         
         answers = {}
-        
-        for title, config in questions.items():
-            extracted = self._extract_section(text, config["keywords"], max_length=1500)
-            answers[config["question"]] = extracted
+        for question, config in questions.items():
+            answer = self._extract_meaningful_content(
+                sentences, 
+                config["keywords"], 
+                config["max_sentences"]
+            )
+            answers[question] = answer
         
         return answers
     
-    def _generate_summary(self, text: str) -> str:
-        """Generate comprehensive summary of the document."""
-        self._ensure_models()
-        
-        # Chunk and summarize
-        chunks = self._chunk_text(text, chunk_size=800)
-        
-        if not chunks:
-            return "Document too short to summarize."
-        
-        summaries = []
-        for i, chunk in enumerate(chunks[:6]):  # Process up to 6 chunks for more coverage
-            try:
-                result = self._summarizer(chunk, max_length=120, min_length=40)
-                summaries.append(result[0]['summary_text'])
-            except Exception as e:
-                self.logger.warning(f"Summarization failed for chunk {i}: {e}")
-        
-        if not summaries:
-            return "Could not generate summary."
-        
-        # Combine summaries into comprehensive overview
-        combined = " ".join(summaries)
-        
-        # If combined is very long, do a final summarization pass
-        if len(combined.split()) > 300:
-            try:
-                final = self._summarizer(combined, max_length=200, min_length=80)
-                return final[0]['summary_text']
-            except:
-                return combined[:800]
-        
-        return combined
-    
-    def _identify_essential_points(self, text: str, metrics: List[Dict]) -> List[Dict[str, Any]]:
-        """Identify essential points for loan assessment - returns longer descriptions."""
-        import re
-        
+    def _identify_essential_points(self, sentences: List[str], metrics: List[Dict]) -> List[Dict[str, Any]]:
+        """Identify key essential points with clean descriptions."""
         points = []
-        text_lower = text.lower()
         
-        # Clean text for better sentence extraction
-        clean_text = re.sub(r'\s+', ' ', text.replace('\n', ' ')).strip()
-        sentences = re.split(r'(?<=[.!?])\s+', clean_text)
-        
-        # Check for key ESG topics
         topics = [
-            ("Carbon Emissions", ["emission", "carbon", "co2", "greenhouse", "ghg", "scope 1", "scope 2"], "critical"),
-            ("Renewable Energy", ["renewable", "solar", "wind", "clean energy", "green power"], "high"),
-            ("Sustainability Targets", ["target", "goal", "commitment", "pledge", "2030", "2050", "net zero"], "high"),
-            ("Certifications & Compliance", ["compliance", "regulation", "standard", "certified", "iso", "audit"], "medium"),
-            ("Waste Management", ["waste", "recycling", "circular", "disposal", "reduce"], "medium"),
-            ("Water Conservation", ["water", "wastewater", "conservation", "effluent"], "medium"),
-            ("Social Responsibility", ["employee", "community", "safety", "diversity", "training", "workforce"], "medium"),
-            ("Environmental Impact", ["biodiversity", "ecosystem", "pollution", "environmental", "habitat"], "medium"),
+            ("Climate Commitment", ["climate action", "net zero", "carbon neutral", "emission reduction", "climate target"], "critical"),
+            ("Renewable Energy", ["renewable energy", "solar power", "wind energy", "clean energy", "green power"], "high"),
+            ("Sustainability Goals", ["sustainability target", "2030 goal", "2050 target", "sdg", "sustainable development"], "high"),
+            ("Environmental Management", ["environmental management", "iso 14001", "environmental policy", "eco-friendly"], "medium"),
+            ("Social Responsibility", ["employee welfare", "community engagement", "diversity inclusion", "safety program"], "medium"),
         ]
         
-        for topic, keywords, importance in topics:
-            if any(kw in text_lower for kw in keywords):
-                # Find multiple relevant sentences for longer description
-                relevant = []
-                for sentence in sentences:
-                    if any(kw in sentence.lower() for kw in keywords) and len(sentence.strip()) > 20:
-                        relevant.append(sentence.strip())
-                        if len(' '.join(relevant)) > 400:  # Longer descriptions
-                            break
-                
-                if relevant:
-                    description = ' '.join(relevant[:3])  # Up to 3 sentences
-                    # Clean the description
-                    description = self._clean_extracted_text(description)
-                    points.append({
-                        "title": topic,
-                        "description": description,
-                        "importance": importance,
-                        "category": "compliance"
-                    })
+        for title, keywords, importance in topics:
+            content = self._extract_meaningful_content(sentences, keywords, max_sentences=2)
+            if "not found" not in content.lower():
+                points.append({
+                    "title": title,
+                    "description": content,
+                    "importance": importance,
+                    "category": "compliance"
+                })
         
-        # Add metrics as essential points with context
-        for metric in metrics[:4]:
-            # Find sentence containing this metric value for context
-            metric_context = ""
-            for sentence in sentences:
-                if metric['value'] in sentence:
-                    metric_context = sentence.strip()
-                    break
-            
+        # Add top metrics as points
+        for metric in metrics[:2]:
             points.append({
-                "title": f"{metric['metric']}",
-                "description": f"{metric['value']} {metric['unit']}" + (f" - {metric_context}" if metric_context else ""),
+                "title": metric['metric'],
+                "description": f"Reported value: {metric['value']} {metric['unit']}",
                 "importance": "high",
                 "category": "quantitative"
             })
         
-        return points[:10]  # Limit to 10 points
+        return points[:6]  # Limit to 6 points
+    
+    def _generate_summary(self, text: str) -> str:
+        """Generate a clean summary."""
+        self._ensure_models()
+        
+        # Get clean text for summarization
+        clean_text = self._clean_text(text)
+        
+        # Take first ~3000 chars for summarization
+        chunk = clean_text[:3000]
+        
+        if len(chunk) < 200:
+            return "Document content insufficient for summary generation."
+        
+        try:
+            result = self._summarizer(chunk, max_length=150, min_length=50)
+            summary = result[0]['summary_text']
+            
+            # Clean up the summary
+            summary = re.sub(r'\s+', ' ', summary).strip()
+            if not summary.endswith('.'):
+                summary += '.'
+            
+            return summary
+        except Exception as e:
+            self.logger.warning(f"Summarization failed: {e}")
+            return "Summary generation failed."
     
     def analyze_loan_documents(self, loan_id: int) -> ESGAnalysisResult:
-        """
-        Analyze all documents for a loan application.
-        
-        Args:
-            loan_id: The loan application ID
-            
-        Returns:
-            ESGAnalysisResult with extracted data
-        """
+        """Analyze documents for a loan application."""
         from app.ai_services.config import settings
         
         loan_dir = settings.UPLOAD_DIR / f"LOAN_{loan_id}"
@@ -422,10 +393,7 @@ class ESGAgent:
             return self._empty_result("No documents found for this loan.")
         
         # Only use sustainability report
-        doc_files = [
-            "sustainability_report.pdf",
-            "sustainability_report.docx",
-        ]
+        doc_files = ["sustainability_report.pdf", "sustainability_report.docx"]
         
         full_text = ""
         total_pages = 0
@@ -449,29 +417,46 @@ class ESGAgent:
         
         self.logger.info(f"Extracted {len(full_text)} chars from {total_pages} pages")
         
-        # Extract metrics
-        metrics = self._extract_metrics(full_text)
+        # Get clean sentences for analysis
+        sentences = self._get_clean_sentences(full_text)
+        self.logger.info(f"Found {len(sentences)} quality sentences")
         
-        # Extract answers to 5 key ESG questions (keyword-based)
+        # Extract metrics
+        metrics = self._extract_metrics_smart(full_text)
+        
+        # Extract answers
         answers = self._extract_answers(full_text)
         
-        # Generate summary (longer, more detailed)
+        # Generate summary
         summary = self._generate_summary(full_text)
         
         # Identify essential points
-        essential_points = self._identify_essential_points(full_text, metrics)
+        essential_points = self._identify_essential_points(sentences, metrics)
+        
+        # Build qualitative data from answers
+        qualitative = []
+        for q, a in answers.items():
+            if "not found" not in a.lower():
+                short_topic = q.replace("Extract ", "").replace(" information", "").title()
+                qualitative.append({
+                    "topic": short_topic[:50],
+                    "description": a,
+                    "lma_component": "ESG Disclosure",
+                    "source": "sustainability_report"
+                })
+        
+        confidence = 0.8 if (metrics or qualitative) else 0.4
         
         return ESGAnalysisResult(
             summary=summary,
             key_metrics=metrics,
             essential_points=essential_points,
             extraction_answers=answers,
-            quantitative_data=[m for m in metrics if m['category'] in ['emissions', 'scope_emissions', 'energy', 'total_emissions', 'renewable_energy']],
-            qualitative_data=[{"topic": k, "description": v, "lma_component": "Use of Proceeds", "source": "sustainability_report"} 
-                            for k, v in answers.items() if "not clearly stated" not in v.lower()],
-            confidence=0.75 if metrics or any("not clearly stated" not in v.lower() for v in answers.values()) else 0.3,
+            quantitative_data=metrics,
+            qualitative_data=qualitative,
+            confidence=confidence,
             pages_analyzed=total_pages,
-            method="bart-cnn + keyword-extraction"
+            method="smart-extraction-v2"
         )
     
     def _empty_result(self, message: str) -> ESGAnalysisResult:
@@ -494,10 +479,7 @@ esg_agent = ESGAgent()
 
 
 def analyze_documents(loan_id: int) -> Dict[str, Any]:
-    """
-    Main entry point for document analysis.
-    Called by the API endpoint.
-    """
+    """Main entry point for document analysis."""
     result = esg_agent.analyze_loan_documents(loan_id)
     
     return {

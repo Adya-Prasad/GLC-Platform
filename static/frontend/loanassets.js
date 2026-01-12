@@ -64,9 +64,9 @@ export async function renderLoanAssets() {
         <div class="bg-white rounded-xl p-4">
             <h1 class="text-lg font-bold text-gray-800">Reports and Data</h1>
             <p class="text-[15px] font-medium text-gray-800">A Centrally Distributed Collection of Data and Generated Reports to Manage</p>
-            <div class="mt-4">
-                ${content}
-            </div>
+        </div>
+        <div class="mt-4">
+            ${content}
         </div>
     `;
 }

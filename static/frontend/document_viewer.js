@@ -83,19 +83,63 @@ function openDocumentModal(url, type, title) {
     frame.classList.add('hidden');
     placeholder.classList.add('hidden');
 
-    // Handle different types
-    if (type.includes('pdf') || type.includes('json') || type.includes('txt') || type.includes('image')) {
-        frame.src = url;
-    } else {
-        // Use Google Docs Viewer for Office files or fallback
-        const gDocsUrl = `https://docs.google.com/gview?url=${encodeURIComponent(window.location.origin + url)}&embedded=true`;
-        frame.src = gDocsUrl;
-    }
+    // Determine file type from URL, type parameter, or title (filename)
+    const fileExt = url.split('.').pop()?.toLowerCase() || '';
+    const titleExt = title.split('.').pop()?.toLowerCase() || '';
+    const typeLower = (type || '').toLowerCase();
     
-    frame.onload = () => {
-        loader.classList.add('hidden');
-        frame.classList.remove('hidden');
-    };
+    // Check if it's a PDF - multiple ways to detect
+    const isPdf = typeLower.includes('pdf') || 
+                  typeLower === 'ai_report' || 
+                  typeLower === 'application/pdf' ||
+                  fileExt === 'pdf' || 
+                  titleExt === 'pdf' ||
+                  title.toLowerCase().endsWith('.pdf');
+    
+    const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(fileExt) || 
+                    ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(titleExt) ||
+                    typeLower.includes('image');
+    
+    const isText = ['json', 'txt', 'md'].includes(fileExt) || 
+                   ['json', 'txt', 'md'].includes(titleExt) ||
+                   typeLower.includes('json') || 
+                   typeLower.includes('text') ||
+                   typeLower === 'application/json';
+    
+    console.log('Document Viewer - URL:', url, 'Type:', type, 'Title:', title, 'isPdf:', isPdf, 'fileExt:', fileExt, 'titleExt:', titleExt);
+    
+    // For PDFs, images, and text files - load directly in iframe
+    if (isPdf || isImage || isText) {
+        console.log('Loading directly in iframe:', url);
+        frame.src = url;
+        frame.onload = () => {
+            console.log('Document loaded successfully');
+            loader.classList.add('hidden');
+            frame.classList.remove('hidden');
+        };
+        frame.onerror = (err) => {
+            console.error('Document load error:', err);
+            loader.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+            placeholder.innerHTML = `
+                <div class="text-center p-8">
+                    <p class="text-red-500 font-medium mb-2">Unable to preview this file</p>
+                    <p class="text-gray-500 text-sm mb-4">The file may not exist or cannot be displayed in browser.</p>
+                    <a href="${url}" download class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Download Instead</a>
+                </div>
+            `;
+        };
+    } else {
+        console.log('Using Google Docs viewer for:', url);
+        // For Office files (docx, xlsx, pptx) - use Google Docs Viewer
+        const fullUrl = url.startsWith('http') ? url : window.location.origin + url;
+        const gDocsUrl = `https://docs.google.com/gview?url=${encodeURIComponent(fullUrl)}&embedded=true`;
+        frame.src = gDocsUrl;
+        frame.onload = () => {
+            loader.classList.add('hidden');
+            frame.classList.remove('hidden');
+        };
+    }
 }
 
 function closeDocumentModal() {

@@ -1,5 +1,7 @@
 # Frequently Asked Questions
 
+> In browser use, check browser console for debug logs, it will help alot, if you face any issue or error!
+
 ## General Questions
 
 ### Q1. What is the GLC Platform?

@@ -736,13 +736,22 @@ function renderEmissionsReductionChart(kpis) {
 // ============ AI INSIGHT TAB ============
 function renderAITab() {
     const docAnalysis = analysisData.document_analysis || null;
-    const hasAnalysis = docAnalysis && (docAnalysis.essential_points?.length || Object.keys(docAnalysis.extraction_answers || {}).length);
+    // More robust check for analysis data
+    const hasAnalysis = docAnalysis && (
+        docAnalysis.summary || 
+        docAnalysis.essential_points?.length > 0 || 
+        Object.keys(docAnalysis.extraction_answers || {}).length > 0 ||
+        docAnalysis.confidence > 0
+    );
     
     // Check user role - only lenders can take actions
     const user = JSON.parse(localStorage.getItem('glc_user'));
     const isLender = user?.role === 'lender';
     const disabledClass = !isLender ? 'opacity-50 cursor-not-allowed' : '';
     const disabledAttr = !isLender ? 'disabled' : '';
+    
+    // Debug log
+    console.log('AI Tab - hasAnalysis:', hasAnalysis, 'isLender:', isLender, 'docAnalysis:', docAnalysis);
     
     return `
         <div class="space-y-4">
@@ -754,19 +763,19 @@ function renderAITab() {
             ` : ''}
             
             <!-- AI Action Bar -->
-            <div id="ai_action" class="bg-gradient-to-r from-indigo-600 to-blue-600 p-4 rounded-xl flex items-center justify-between">
+            <div id="ai_action" class="bg-gradient-to-r from-indigo-600 to-blue-600 p-4 rounded-xl flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-3 text-white">
                     <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                     </div>
                     <div>
                         <p class="font-semibold">AI Agent, with embedded memory context</p>
-                        <p class="text-sm text-white/80">${hasAnalysis ? 'Analysis complete - Ready to chat' : 'Click to analyze sustainability & annual reports ➔'}</p>
+                        <p class="text-sm text-white/80">${hasAnalysis ? 'Analysis complete - Ready to chat' : 'Click to analyze sustainability reports ➔'}</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
-                    ${hasAnalysis && isLender ? `
-                    <button id="save-ai-btn" onclick="window.saveAIRetrievalPDF()" class="px-5 py-2.5 bg-emerald-500 text-white font-semibold rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2 shadow-md">
+                    ${isLender ? `
+                    <button id="save-ai-btn" onclick="window.saveAIRetrievalPDF()" class="px-5 py-2.5 bg-emerald-500 text-white font-semibold rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2 shadow-md ${!hasAnalysis ? 'opacity-50 cursor-not-allowed' : ''}" ${!hasAnalysis ? 'disabled title="Run AI Agent first"' : ''}>
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         Save AI Report
                     </button>
@@ -778,13 +787,13 @@ function renderAITab() {
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-10 gap-4" style="min-height: calc(100vh - 280px);">
-                <!-- Data Performance Section -->
-                <div class="lg:col-span-6 rounded-xl border border-purple-200 overflow-hidden flex flex-col">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <!-- Data Performance Section - Full Width -->
+                <div class="lg:col-span-2 rounded-xl border border-purple-200 overflow-hidden flex flex-col">
                     <div class="bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-3 flex-shrink-0">
                         <h3 class="font-bold text-white flex items-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                            Data Performance
+                            AI Analysis Results
                         </h3>
                     </div>
                     <div id="data-performance-content" class="p-5 bg-gradient-to-br from-purple-50 to-indigo-100 flex-1 overflow-y-auto">
@@ -792,8 +801,8 @@ function renderAITab() {
                     </div>
                 </div>
 
-                <!-- Document Chat Section - Sticky Full Height -->
-                <div class="lg:col-span-4 bg-indigo-950/40 rounded-xl border border-purple-200 overflow-hidden text-white flex flex-col lg:sticky lg:top-4" style="height: calc(100vh - 280px); max-height: 700px;">
+                <!-- Document Chat Section -->
+                <div class="lg:col-span-1 bg-indigo-950/40 rounded-xl border border-purple-200 overflow-hidden text-white flex flex-col" style="min-height: 500px; max-height: 600px;">
                     <div class="bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-3 flex-shrink-0">
                         <h3 class="font-bold text-white flex items-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
@@ -838,106 +847,105 @@ function renderDataPerformance(data) {
     
     return `
         <div class="space-y-6">
-            <!-- Essential Points - Masonry Layout -->
+            <!-- Executive Summary - Full Width -->
+            ${data.summary ? `
+            <div class="bg-white rounded-xl p-5 border border-indigo-200 shadow-sm">
+                <h4 class="font-bold text-indigo-800 mb-3 text-base flex items-center gap-2">
+                    <span class="text-lg">📄</span> Executive Summary
+                </h4>
+                <p class="text-[14px] text-gray-700 leading-relaxed">${data.summary}</p>
+                <div class="mt-3 flex items-center gap-4 text-xs text-gray-500">
+                    <span>📊 Confidence: ${Math.round((data.confidence || 0) * 100)}%</span>
+                    <span>📑 Pages Analyzed: ${data.pages_analyzed || 0}</span>
+                </div>
+            </div>` : ''}
+
+            <!-- Essential Points - Full Width -->
             ${essentialPoints.length ? `
             <div>
-                <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2 text-base">
-                    <span class="text-lg">💡</span> Essential Points
+                <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-base">
+                    <span class="text-lg">💡</span> Key Findings
                 </h4>
-                <div class="columns-1 md:columns-2 gap-4 space-y-4">
+                <div class="grid grid-cols-1 gap-4">
                     ${essentialPoints.map(p => `
-                        <div class="break-inside-avoid p-4 rounded-lg border shadow-sm ${p.importance === 'critical' ? 'bg-red-50 border-red-200' : p.importance === 'high' ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}">
-                            <div class="flex items-center gap-2 mb-2">
-                                <span class="px-2 py-1 rounded text-xs font-bold ${p.importance === 'critical' ? 'bg-red-100 text-red-700' : p.importance === 'high' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}">${p.importance.toUpperCase()}</span>
-                                <span class="text-xs text-gray-500">${p.category}</span>
+                        <div class="p-4 rounded-xl border shadow-sm ${p.importance === 'critical' ? 'bg-red-50 border-red-200' : p.importance === 'high' ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-200'}">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="px-3 py-1 rounded-full text-xs font-bold ${p.importance === 'critical' ? 'bg-red-100 text-red-700' : p.importance === 'high' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}">${p.importance.toUpperCase()}</span>
+                                <span class="font-semibold text-[15px] text-gray-800">${p.title}</span>
+                                <span class="text-xs text-gray-400 ml-auto">${p.category}</span>
                             </div>
-                            <p class="font-semibold text-[14px] text-gray-800 mb-1">${p.title}</p>
-                            <p class="text-[13px] text-gray-600 leading-relaxed">${p.description}</p>
+                            <p class="text-[14px] text-gray-600 leading-relaxed">${p.description}</p>
                         </div>
                     `).join('')}
                 </div>
             </div>` : ''}
 
-            <!-- Two Grids: Quantitative & Qualitative -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Quantitative Data Grid -->
-                <div>
-                    <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2 text-base">
-                        <span class="text-lg">📊</span> Quantitative Data
-                    </h4>
-                    ${quantitative.length ? `
-                    <div class="border rounded-lg overflow-hidden shadow-sm">
-                        <table class="w-full text-[13px]">
-                            <thead class="bg-blue-50">
-                                <tr>
-                                    <th class="px-3 py-2.5 text-left text-blue-800 font-semibold">Metric</th>
-                                    <th class="px-3 py-2.5 text-right text-blue-800 font-semibold">Value</th>
-                                    <th class="px-3 py-2.5 text-center text-blue-800 font-semibold">Category</th>
+            <!-- Quantitative Metrics - Full Width -->
+            ${quantitative.length ? `
+            <div>
+                <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-base">
+                    <span class="text-lg">📊</span> Extracted Metrics
+                </h4>
+                <div class="bg-white border rounded-xl overflow-hidden shadow-sm">
+                    <table class="w-full text-[14px]">
+                        <thead class="bg-blue-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-blue-800 font-semibold">Metric</th>
+                                <th class="px-4 py-3 text-right text-blue-800 font-semibold">Value</th>
+                                <th class="px-4 py-3 text-center text-blue-800 font-semibold">Category</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${quantitative.map(q => `
+                                <tr class="border-t hover:bg-gray-50">
+                                    <td class="px-4 py-3 text-gray-700">${q.metric}</td>
+                                    <td class="px-4 py-3 text-right font-mono font-semibold text-gray-900">${q.value} ${q.unit}</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span class="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">${q.category}</span>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                ${quantitative.map(q => `
-                                    <tr class="border-t hover:bg-gray-50">
-                                        <td class="px-3 py-2.5 text-gray-700">${q.metric}</td>
-                                        <td class="px-3 py-2.5 text-right font-mono font-medium">${q.value} ${q.unit}</td>
-                                        <td class="px-3 py-2.5 text-center">
-                                            <span class="px-2 py-1 rounded text-xs ${q.category === 'emissions' ? 'bg-blue-100 text-blue-700' : q.category === 'energy' ? 'bg-green-100 text-green-700' : q.category === 'target' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}">${q.category}</span>
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>` : `
-                    <div class="bg-gray-50 rounded-lg p-4 text-center text-gray-500 text-[13px]">
-                        No quantitative data extracted from documents.
-                    </div>`}
+                            `).join('')}
+                        </tbody>
+                    </table>
                 </div>
+            </div>` : ''}
 
-                <!-- Qualitative Data Grid -->
-                <div>
-                    <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2 text-base">
-                        <span class="text-lg">📝</span> Qualitative Information
-                    </h4>
-                    ${qualitative.length ? `
-                    <div class="space-y-3 max-h-72 overflow-y-auto">
-                        ${qualitative.map(q => `
-                            <div class="p-3 bg-gray-50 rounded-lg border shadow-sm">
-                                <div class="flex items-center justify-between mb-2">
-                                    <span class="font-semibold text-[13px] text-gray-800">${q.topic}</span>
-                                    <span class="px-2 py-1 rounded text-xs bg-emerald-100 text-emerald-700">${q.lma_component}</span>
-                                </div>
-                                <p class="text-[13px] text-gray-600 leading-relaxed">${q.description}</p>
-                                <p class="text-xs text-gray-400 mt-2">Source: ${q.source}</p>
+            <!-- Qualitative Information - Full Width -->
+            ${qualitative.length ? `
+            <div>
+                <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-base">
+                    <span class="text-lg">📝</span> Qualitative Insights
+                </h4>
+                <div class="grid grid-cols-1 gap-3">
+                    ${qualitative.map(q => `
+                        <div class="p-4 bg-white rounded-xl border shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="font-semibold text-[14px] text-gray-800">${q.topic}</span>
+                                <span class="px-3 py-1 rounded-full text-xs bg-emerald-100 text-emerald-700">${q.lma_component}</span>
                             </div>
-                        `).join('')}
-                    </div>` : `
-                    <div class="bg-gray-50 rounded-lg p-4 text-center text-gray-500 text-[13px]">
-                        No qualitative data extracted from documents.
-                    </div>`}
+                            <p class="text-[14px] text-gray-600 leading-relaxed">${q.description}</p>
+                            <p class="text-xs text-gray-400 mt-2">Source: ${q.source}</p>
+                        </div>
+                    `).join('')}
                 </div>
-            </div>
+            </div>` : ''}
 
-            <!-- LMA Extraction Questions -->
+            <!-- LMA Framework Questions - Full Width -->
             ${Object.keys(extractions).length ? `
             <div>
-                <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2 text-base">
-                    <span class="text-lg">📋</span> LMA Framework Questions
+                <h4 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-base">
+                    <span class="text-lg">📋</span> LMA Framework Analysis
                 </h4>
-                <div class="space-y-3">
+                <div class="grid grid-cols-1 gap-4">
                     ${Object.entries(extractions).map(([q, a]) => `
-                        <div class="p-4 bg-white rounded-lg border shadow-sm">
-                            <p class="font-semibold text-[14px] text-indigo-700 mb-2">❓ ${q}</p>
-                            <p class="text-[13px] text-gray-700 leading-relaxed ${(a.includes('Not found') || a.includes('not clearly stated')) ? 'italic text-gray-400' : ''}">${a}</p>
+                        <div class="p-5 bg-white rounded-xl border shadow-sm">
+                            <p class="font-semibold text-[15px] text-indigo-700 mb-3 flex items-start gap-2">
+                                <span class="text-indigo-500">❓</span> ${q}
+                            </p>
+                            <p class="text-[14px] text-gray-700 leading-relaxed pl-6 ${(a.includes('Not found') || a.includes('not clearly stated')) ? 'italic text-gray-400' : ''}">${a}</p>
                         </div>
                     `).join('')}
                 </div>
-            </div>` : ''}
-
-            <!-- Summary -->
-            ${data.summary ? `
-            <div class="bg-indigo-50 rounded-lg p-4 border border-indigo-200 shadow-sm">
-                <h4 class="font-semibold text-indigo-800 mb-2 text-[14px]">📄 Executive Summary</h4>
-                <p class="text-[13px] text-indigo-800 leading-relaxed">${data.summary}</p>
             </div>` : ''}
         </div>
     `;
@@ -1500,6 +1508,14 @@ window.initiateAIAgent = async function() {
             btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Re-analyze`;
         }
         
+        // Enable Save AI Report button
+        const saveBtn = document.getElementById('save-ai-btn');
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            saveBtn.removeAttribute('title');
+        }
+        
     } catch (error) {
         clearInterval(loadingInterval);
         console.error('AI Agent error:', error);
@@ -1609,8 +1625,14 @@ window.saveAIRetrievalPDF = async function() {
     }
     
     const appId = window.currentAuditAppId;
-    if (!appId || !analysisData) {
-        alert('No analysis data available. Please run AI Agent first.');
+    if (!appId) {
+        alert('No loan application selected.');
+        return;
+    }
+    
+    // Check if analysis has been run
+    if (!analysisData?.document_analysis) {
+        alert('No AI analysis data available. Please run "Initiate AI Agent" first.');
         return;
     }
     
