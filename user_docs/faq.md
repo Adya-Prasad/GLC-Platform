@@ -72,6 +72,7 @@ The AI Agent:
 5. Extract environmental protection and pollution control measures
 
 ### Q12. Why is the AI chat not responding well?
+In local host, make sure Model safetensors are downloaded with Huggingface <br>
 The AI works best with:
 - Clear, specific questions
 - Keywords like "financial", "emissions", "renewable", "waste", "employee"

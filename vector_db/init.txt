@@ -1,2 +1,0 @@
-Vector database storage directory for GLC Platform.
-This folder stores FAISS indexes and embeddings for document search.

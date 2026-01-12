@@ -764,9 +764,9 @@ function renderAITab() {
                         <p class="text-sm text-white/80">${hasAnalysis ? 'Analysis complete - Ready to chat' : 'Click to analyze sustainability & annual reports ➔'}</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-3">
                     ${hasAnalysis && isLender ? `
-                    <button id="save-ai-btn" onclick="window.saveAIRetrievalPDF()" class="px-4 py-2.5 bg-emerald-500 text-white font-semibold rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2">
+                    <button id="save-ai-btn" onclick="window.saveAIRetrievalPDF()" class="px-5 py-2.5 bg-emerald-500 text-white font-semibold rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2 shadow-md">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         Save AI Report
                     </button>
@@ -841,18 +841,18 @@ function renderDataPerformance(data) {
             <!-- Essential Points - Masonry Layout -->
             ${essentialPoints.length ? `
             <div>
-                <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2 text-base">
                     <span class="text-lg">💡</span> Essential Points
                 </h4>
-                <div class="columns-1 md:columns-2 gap-3 space-y-3">
+                <div class="columns-1 md:columns-2 gap-4 space-y-4">
                     ${essentialPoints.map(p => `
-                        <div class="break-inside-avoid p-3 rounded-lg border ${p.importance === 'critical' ? 'bg-red-50 border-red-200' : p.importance === 'high' ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="px-2 py-0.5 rounded text-xs font-bold ${p.importance === 'critical' ? 'bg-red-100 text-red-700' : p.importance === 'high' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}">${p.importance.toUpperCase()}</span>
+                        <div class="break-inside-avoid p-4 rounded-lg border shadow-sm ${p.importance === 'critical' ? 'bg-red-50 border-red-200' : p.importance === 'high' ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="px-2 py-1 rounded text-xs font-bold ${p.importance === 'critical' ? 'bg-red-100 text-red-700' : p.importance === 'high' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}">${p.importance.toUpperCase()}</span>
                                 <span class="text-xs text-gray-500">${p.category}</span>
                             </div>
-                            <p class="font-medium text-sm text-gray-800">${p.title}</p>
-                            <p class="text-xs text-gray-600 mt-1">${p.description}</p>
+                            <p class="font-semibold text-[14px] text-gray-800 mb-1">${p.title}</p>
+                            <p class="text-[13px] text-gray-600 leading-relaxed">${p.description}</p>
                         </div>
                     `).join('')}
                 </div>
@@ -862,56 +862,56 @@ function renderDataPerformance(data) {
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Quantitative Data Grid -->
                 <div>
-                    <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                        <span class="text-lg">🗐</span> Quantitative Data
+                    <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2 text-base">
+                        <span class="text-lg">📊</span> Quantitative Data
                     </h4>
                     ${quantitative.length ? `
-                    <div class="border rounded-lg overflow-hidden">
-                        <table class="w-full text-sm">
+                    <div class="border rounded-lg overflow-hidden shadow-sm">
+                        <table class="w-full text-[13px]">
                             <thead class="bg-blue-50">
                                 <tr>
-                                    <th class="px-3 py-2 text-left text-blue-800">Metric</th>
-                                    <th class="px-3 py-2 text-right text-blue-800">Value</th>
-                                    <th class="px-3 py-2 text-center text-blue-800">Category</th>
+                                    <th class="px-3 py-2.5 text-left text-blue-800 font-semibold">Metric</th>
+                                    <th class="px-3 py-2.5 text-right text-blue-800 font-semibold">Value</th>
+                                    <th class="px-3 py-2.5 text-center text-blue-800 font-semibold">Category</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${quantitative.map(q => `
                                     <tr class="border-t hover:bg-gray-50">
-                                        <td class="px-3 py-2 text-gray-700">${q.metric}</td>
-                                        <td class="px-3 py-2 text-right font-mono font-medium">${q.value} ${q.unit}</td>
-                                        <td class="px-3 py-2 text-center">
-                                            <span class="px-2 py-0.5 rounded text-xs ${q.category === 'emissions' ? 'bg-blue-100 text-blue-700' : q.category === 'energy' ? 'bg-green-100 text-green-700' : q.category === 'target' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}">${q.category}</span>
+                                        <td class="px-3 py-2.5 text-gray-700">${q.metric}</td>
+                                        <td class="px-3 py-2.5 text-right font-mono font-medium">${q.value} ${q.unit}</td>
+                                        <td class="px-3 py-2.5 text-center">
+                                            <span class="px-2 py-1 rounded text-xs ${q.category === 'emissions' ? 'bg-blue-100 text-blue-700' : q.category === 'energy' ? 'bg-green-100 text-green-700' : q.category === 'target' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}">${q.category}</span>
                                         </td>
                                     </tr>
                                 `).join('')}
                             </tbody>
                         </table>
                     </div>` : `
-                    <div class="bg-gray-50 rounded-lg p-4 text-center text-gray-500 text-sm">
+                    <div class="bg-gray-50 rounded-lg p-4 text-center text-gray-500 text-[13px]">
                         No quantitative data extracted from documents.
                     </div>`}
                 </div>
 
                 <!-- Qualitative Data Grid -->
                 <div>
-                    <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                        <span class="text-lg">🗏</span> Qualitative Information
+                    <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2 text-base">
+                        <span class="text-lg">📝</span> Qualitative Information
                     </h4>
                     ${qualitative.length ? `
-                    <div class="space-y-2 max-h-64 overflow-y-auto">
+                    <div class="space-y-3 max-h-72 overflow-y-auto">
                         ${qualitative.map(q => `
-                            <div class="p-3 bg-gray-50 rounded-lg border">
-                                <div class="flex items-center justify-between mb-1">
-                                    <span class="font-medium text-sm text-gray-800">${q.topic}</span>
-                                    <span class="px-2 py-0.5 rounded text-xs bg-emerald-100 text-emerald-700">${q.lma_component}</span>
+                            <div class="p-3 bg-gray-50 rounded-lg border shadow-sm">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="font-semibold text-[13px] text-gray-800">${q.topic}</span>
+                                    <span class="px-2 py-1 rounded text-xs bg-emerald-100 text-emerald-700">${q.lma_component}</span>
                                 </div>
-                                <p class="text-xs text-gray-600">${q.description}</p>
-                                <p class="text-xs text-gray-400 mt-1">Source: ${q.source}</p>
+                                <p class="text-[13px] text-gray-600 leading-relaxed">${q.description}</p>
+                                <p class="text-xs text-gray-400 mt-2">Source: ${q.source}</p>
                             </div>
                         `).join('')}
                     </div>` : `
-                    <div class="bg-gray-50 rounded-lg p-4 text-center text-gray-500 text-sm">
+                    <div class="bg-gray-50 rounded-lg p-4 text-center text-gray-500 text-[13px]">
                         No qualitative data extracted from documents.
                     </div>`}
                 </div>
@@ -920,14 +920,14 @@ function renderDataPerformance(data) {
             <!-- LMA Extraction Questions -->
             ${Object.keys(extractions).length ? `
             <div>
-                <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2 text-base">
                     <span class="text-lg">📋</span> LMA Framework Questions
                 </h4>
-                <div class="space-y-2">
+                <div class="space-y-3">
                     ${Object.entries(extractions).map(([q, a]) => `
-                        <div class="p-3 bg-gray-50 rounded-lg border">
-                            <p class="font-medium text-sm text-gray-700 mb-1">${q}</p>
-                            <p class="text-sm text-gray-600 ${(a.includes('Not found') || a.includes('not clearly stated')) ? 'italic text-gray-400' : ''}">${a}</p>
+                        <div class="p-4 bg-white rounded-lg border shadow-sm">
+                            <p class="font-semibold text-[14px] text-indigo-700 mb-2">❓ ${q}</p>
+                            <p class="text-[13px] text-gray-700 leading-relaxed ${(a.includes('Not found') || a.includes('not clearly stated')) ? 'italic text-gray-400' : ''}">${a}</p>
                         </div>
                     `).join('')}
                 </div>
@@ -935,8 +935,9 @@ function renderDataPerformance(data) {
 
             <!-- Summary -->
             ${data.summary ? `
-            <div class="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
-                <p class="text-sm text-indigo-800">${data.summary}</p>
+            <div class="bg-indigo-50 rounded-lg p-4 border border-indigo-200 shadow-sm">
+                <h4 class="font-semibold text-indigo-800 mb-2 text-[14px]">📄 Executive Summary</h4>
+                <p class="text-[13px] text-indigo-800 leading-relaxed">${data.summary}</p>
             </div>` : ''}
         </div>
     `;

@@ -1,0 +1,63 @@
+{
+  "loan_id": "LOAN_2",
+  "submitted_at": "2026-01-12T15:11:27.355935",
+  "application_data": {
+    "organization_details": {
+      "org_name": "Adani Group",
+      "sector": "Construction materials",
+      "location": "Karnatak India",
+      "website": "https://www.acchelp.in/",
+      "annual_revenue": 2600000000.0,
+      "shareholder_entities": 2,
+      "contact_email": "support@adanione.com",
+      "contact_phone": "8188068811",
+      "tax_id": "AAACT1507C",
+      "credit_score": 850
+    },
+    "project_information": {
+      "project_name": "New Sonbhadra Cement Plant",
+      "project_type": "New Project",
+      "project_location": " Salai Banwa, Panari, Obra, Sonbhadra, Uttar Pradesh",
+      "planned_start_date": "2026-01-28",
+      "loan_tenor": 3,
+      "amount_requested": 600000000.0,
+      "currency": "USD",
+      "use_of_proceeds": "ACC Cement's new Sonbhadra plant is a ~3.0 MTPA standalone grinding unit, primarily funded by internal accruals (part of the Rs 600 Crore investment), with proceeds going towards land acquisition, construction, DG sets, railway siding, and equipment for cement production, aiming to meet strong regional demand by utilizing clinker from existing ACC plants and creating local jobs, all while focusing on environmental compliance and Ash utilization",
+      "project_pin_code": "231219",
+      "reporting_frequency": "Half-Yearly",
+      "existing_loans": "No",
+      "project_description": "ACC Cement is developing a new 3.0 Million Tonnes Per Annum (MTPA) standalone grinding unit in Salai Banwa, Obra, Sonbhadra, Uttar Pradesh, a project involving significant investment, greenbelt development, and a railway siding, aiming for completion by FY2026, though facing some local issues like worker payments, and now part of the larger Adani Group portfolio. Investment: Around ₹600 Crore (as of earlier reports). Features: Includes a DG set, railway siding, and significant greenbelt development. Status: As of mid-2025, about 50% of civil work was complete, with commissioning expected by the end of FY2026. Land Use: Covers 32.6 hectares, with 33% designated for greenbelt.",
+      "shareholder_entities": 2,
+      "shareholders_data": []
+    },
+    "green_qualification_and_kpis": {
+      "scope1_tco2": 409.0,
+      "scope2_tco2": 620.0,
+      "scope3_tco2": 300.0,
+      "baseline_year": 2030,
+      "target_reduction": "48",
+      "reporting_frequency": "Half-Yearly",
+      "kpi_metrics": [
+        "cinders",
+        "dust",
+        "water consumption",
+        "air pollution"
+      ],
+      "use_of_proceeds_description": "ACC Cement's new Sonbhadra plant is a ~3.0 MTPA standalone grinding unit, primarily funded by internal accruals (part of the Rs 600 Crore investment), with proceeds going towards land acquisition, construction, DG sets, railway siding, and equipment for cement production, aiming to meet strong regional demand by utilizing clinker from existing ACC plants and creating local jobs, all while focusing on environmental compliance and Ash utilization"
+    },
+    "esg_compliance_questionnaire": {
+      "1_Does_the_project_have_clear_environmental_benefits?": "medium",
+      "2_Is_data_available_to_measure_and_report_impact?": "comprehensive",
+      "3_Compliance_with_local_environmental_regulations?": "in_progress",
+      "4_Any_controversy_or_negative_social_impact_risks?": "minor",
+      "5_Are_you_implementing_any_research_and_development_(R&D)_for_low-carbon_technologies_or_practices?": "yes",
+      "6_Have_you_signed_a_Union_agreement?": "yes",
+      "7_Are_you_adapting_GHG_Protocol?": "no",
+      "8_Has_the_organization_published_climate-related_disclosures_or_reporting?": "no",
+      "9_Are_there_clear,_time-bound_emissions_reduction_targets_aligned_with_climate_pathways?": "no",
+      "10_Does_the_company_have_plans_to_phase_out_or_avoid_new_high-carbon_infrastructure?": "yes",
+      "11_Does_the_project_involve_long-lived_high-carbon_assets_that_could_inhibit_future_decarbonisation?": "no"
+    },
+    "supporting_documents": {}
+  }
+}

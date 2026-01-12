@@ -168,6 +168,53 @@ class ESGAgent:
         
         return unique_metrics[:8]  # Limit total metrics
     
+    def _clean_extracted_text(self, text: str) -> str:
+        """Clean and format extracted text for better readability."""
+        import re
+        
+        if not text or "not clearly stated" in text.lower():
+            return text
+        
+        # Remove excessive whitespace
+        text = re.sub(r'\s+', ' ', text).strip()
+        
+        # Remove URLs
+        text = re.sub(r'https?://\S+', '', text)
+        
+        # Remove page numbers and headers like "Pg 03", "Page 12"
+        text = re.sub(r'\bPg\s*\d+\b', '', text, flags=re.IGNORECASE)
+        text = re.sub(r'\bPage\s*\d+\b', '', text, flags=re.IGNORECASE)
+        
+        # Remove standalone numbers that look like page refs
+        text = re.sub(r'\s+\d{1,2}\s+(?=\d{1,2}\s+)', ' ', text)
+        
+        # Remove repeated words/phrases
+        words = text.split()
+        cleaned_words = []
+        prev_word = ""
+        for word in words:
+            if word.lower() != prev_word.lower():
+                cleaned_words.append(word)
+            prev_word = word
+        text = ' '.join(cleaned_words)
+        
+        # Ensure proper sentence spacing
+        text = re.sub(r'\.(?=[A-Z])', '. ', text)
+        
+        # Remove garbage characters
+        text = re.sub(r'[^\w\s.,;:!?\'\"()\-–—%$€£₹@&/]', '', text)
+        
+        # Trim to reasonable length and end at sentence boundary
+        if len(text) > 800:
+            # Find last sentence end before 800 chars
+            last_period = text[:800].rfind('.')
+            if last_period > 400:
+                text = text[:last_period + 1]
+            else:
+                text = text[:800] + '...'
+        
+        return text.strip()
+    
     def _extract_section(self, text: str, keywords: List[str], max_length: int = 1500) -> str:
         """Extract relevant section from text based on keywords - returns longer, comprehensive responses."""
         import re
@@ -219,8 +266,9 @@ class ESGAgent:
                     seen.add(s)
                     unique.append(s)
             
-            result = ' '.join(unique[:12])  # Max 12 sentences for comprehensive response
-            return result if result else "Information not clearly stated in the document."
+            result = ' '.join(unique[:10])  # Max 10 sentences
+            # Clean the result for better readability
+            return self._clean_extracted_text(result) if result else "Information not clearly stated in the document."
         
         return "Information not clearly stated in the document."
     
@@ -327,9 +375,12 @@ class ESGAgent:
                             break
                 
                 if relevant:
+                    description = ' '.join(relevant[:3])  # Up to 3 sentences
+                    # Clean the description
+                    description = self._clean_extracted_text(description)
                     points.append({
                         "title": topic,
-                        "description": ' '.join(relevant[:3]),  # Up to 3 sentences
+                        "description": description,
                         "importance": importance,
                         "category": "compliance"
                     })
