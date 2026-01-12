@@ -182,3 +182,242 @@ async def get_document_stats(loan_id: int):
         "documents": docs,
         "status": "ready" if doc_count > 0 else "no_documents"
     }
+
+
+@router.post("/save-ai-report/{loan_id}")
+async def save_ai_report(loan_id: int):
+    """
+    Generate and save AI Retrieval Insights as PDF.
+    Saves to loan_assets/LOAN_{id}/ai_retrieval_insights.pdf
+    """
+    from app.ai_services.config import settings
+    from dbms.db import get_db
+    from dbms.orm_models import LoanApplication, Document
+    from datetime import datetime
+    
+    try:
+        # Get loan application data
+        db = next(get_db())
+        loan_app = db.query(LoanApplication).filter(LoanApplication.id == loan_id).first()
+        
+        if not loan_app:
+            return {"success": False, "message": "Loan application not found"}
+        
+        # Get AI analysis
+        analysis = analyze_documents(loan_id)
+        
+        if not analysis or analysis.get('confidence', 0) == 0:
+            return {"success": False, "message": "No AI analysis available. Please run AI Agent first."}
+        
+        # Generate PDF
+        loan_dir = settings.UPLOAD_DIR / f"LOAN_{loan_id}"
+        loan_dir.mkdir(parents=True, exist_ok=True)
+        pdf_path = loan_dir / "ai_retrieval_insights.pdf"
+        
+        # Build HTML content for PDF
+        html_content = _build_ai_report_html(loan_app, analysis)
+        
+        # Generate PDF using WeasyPrint
+        try:
+            from weasyprint import HTML, CSS
+            
+            css = CSS(string='''
+                @page { size: A4; margin: 1.5cm; }
+                body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.5; color: #333; }
+                .header { background: linear-gradient(135deg, #4f46e5, #2563eb); color: white; padding: 20px; margin: -1.5cm -1.5cm 20px -1.5cm; }
+                .header h1 { margin: 0; font-size: 24pt; }
+                .header p { margin: 5px 0 0 0; opacity: 0.9; }
+                .meta-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+                .meta-grid { display: flex; flex-wrap: wrap; gap: 20px; }
+                .meta-item { flex: 1; min-width: 150px; }
+                .meta-label { font-size: 9pt; color: #64748b; text-transform: uppercase; }
+                .meta-value { font-size: 12pt; font-weight: bold; color: #1e293b; }
+                .section { margin-bottom: 25px; page-break-inside: avoid; }
+                .section-title { font-size: 14pt; font-weight: bold; color: #4f46e5; border-bottom: 2px solid #4f46e5; padding-bottom: 5px; margin-bottom: 15px; }
+                .point-card { background: #fefce8; border-left: 4px solid #eab308; padding: 10px 15px; margin-bottom: 10px; }
+                .point-critical { background: #fef2f2; border-left-color: #ef4444; }
+                .point-high { background: #fffbeb; border-left-color: #f59e0b; }
+                .point-medium { background: #f0fdf4; border-left-color: #22c55e; }
+                .point-title { font-weight: bold; color: #1e293b; }
+                .point-desc { font-size: 10pt; color: #475569; margin-top: 5px; }
+                .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 8pt; font-weight: bold; }
+                .badge-critical { background: #fee2e2; color: #dc2626; }
+                .badge-high { background: #fef3c7; color: #d97706; }
+                .badge-medium { background: #dcfce7; color: #16a34a; }
+                .qa-item { background: #f1f5f9; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+                .qa-question { font-weight: bold; color: #1e293b; margin-bottom: 8px; }
+                .qa-answer { color: #475569; font-size: 10pt; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+                th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+                th { background: #f1f5f9; font-weight: bold; color: #475569; }
+                .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 9pt; color: #94a3b8; text-align: center; }
+            ''')
+            
+            HTML(string=html_content).write_pdf(str(pdf_path), stylesheets=[css])
+            logger.info(f"AI report PDF saved to {pdf_path}")
+            
+        except ImportError:
+            # Fallback: save as HTML if WeasyPrint not available
+            html_path = loan_dir / "ai_retrieval_insights.html"
+            with open(html_path, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+            logger.warning("WeasyPrint not available, saved as HTML instead")
+            return {"success": True, "message": "Report saved as HTML (PDF generation requires WeasyPrint)", "path": str(html_path)}
+        
+        # Register document in database
+        existing_doc = db.query(Document).filter(
+            Document.loan_id == loan_id,
+            Document.filename == "ai_retrieval_insights.pdf"
+        ).first()
+        
+        if existing_doc:
+            existing_doc.uploaded_at = datetime.utcnow()
+        else:
+            # Get a lender user for uploader_id
+            from dbms.orm_models import User, UserRole
+            lender_user = db.query(User).filter(User.role == UserRole.LENDER).first()
+            uploader_id = lender_user.id if lender_user else 1
+            
+            new_doc = Document(
+                loan_id=loan_id,
+                uploader_id=uploader_id,
+                filename="ai_retrieval_insights.pdf",
+                filepath=str(pdf_path),
+                file_type="ai_report",
+                doc_category="ai_generated",
+                uploaded_at=datetime.utcnow()
+            )
+            db.add(new_doc)
+        
+        db.commit()
+        
+        return {"success": True, "message": "AI Retrieval Insights report saved successfully", "path": str(pdf_path)}
+        
+    except Exception as e:
+        logger.error(f"Failed to save AI report: {e}")
+        return {"success": False, "message": str(e)}
+
+
+def _build_ai_report_html(loan_app, analysis) -> str:
+    """Build HTML content for AI report PDF."""
+    from datetime import datetime
+    
+    # Get loan details
+    project_name = loan_app.project_name or "N/A"
+    org_name = loan_app.org_name or "N/A"
+    loan_amount = f"${loan_app.amount_requested:,.2f}" if loan_app.amount_requested else "N/A"
+    loan_id = f"LOAN_{loan_app.id}"
+    
+    # Essential points HTML
+    essential_points_html = ""
+    for point in analysis.get('essential_points', []):
+        importance = point.get('importance', 'medium')
+        essential_points_html += f'''
+            <div class="point-card point-{importance}">
+                <span class="badge badge-{importance}">{importance.upper()}</span>
+                <span class="point-title">{point.get('title', '')}</span>
+                <div class="point-desc">{point.get('description', '')}</div>
+            </div>
+        '''
+    
+    # Quantitative data table
+    quant_rows = ""
+    for q in analysis.get('quantitative_data', []):
+        quant_rows += f'''
+            <tr>
+                <td>{q.get('metric', '')}</td>
+                <td><strong>{q.get('value', '')} {q.get('unit', '')}</strong></td>
+                <td>{q.get('category', '')}</td>
+            </tr>
+        '''
+    
+    quant_table = f'''
+        <table>
+            <thead><tr><th>Metric</th><th>Value</th><th>Category</th></tr></thead>
+            <tbody>{quant_rows if quant_rows else '<tr><td colspan="3">No quantitative data extracted</td></tr>'}</tbody>
+        </table>
+    ''' if analysis.get('quantitative_data') else '<p>No quantitative data extracted from documents.</p>'
+    
+    # LMA Framework Questions
+    qa_html = ""
+    for question, answer in analysis.get('extraction_answers', {}).items():
+        qa_html += f'''
+            <div class="qa-item">
+                <div class="qa-question">📋 {question}</div>
+                <div class="qa-answer">{answer}</div>
+            </div>
+        '''
+    
+    # Summary
+    summary = analysis.get('summary', 'No summary available.')
+    confidence = analysis.get('confidence', 0) * 100
+    pages = analysis.get('pages_analyzed', 0)
+    
+    html = f'''
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="UTF-8"><title>AI Retrieval Insights - {loan_id}</title></head>
+    <body>
+        <div class="header">
+            <h1>🌿 GLC Platform</h1>
+            <p>AI Retrieval Insights Report</p>
+        </div>
+        
+        <div class="meta-box">
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <div class="meta-label">Loan ID</div>
+                    <div class="meta-value">{loan_id}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Project</div>
+                    <div class="meta-value">{project_name}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Organization</div>
+                    <div class="meta-value">{org_name}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Loan Amount</div>
+                    <div class="meta-value">{loan_amount}</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Analysis Confidence</div>
+                    <div class="meta-value">{confidence:.0f}%</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">Pages Analyzed</div>
+                    <div class="meta-value">{pages}</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">📊 Executive Summary</div>
+            <p>{summary}</p>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">💡 Essential Points</div>
+            {essential_points_html if essential_points_html else '<p>No essential points identified.</p>'}
+        </div>
+        
+        <div class="section">
+            <div class="section-title">📈 Quantitative Data</div>
+            {quant_table}
+        </div>
+        
+        <div class="section">
+            <div class="section-title">📋 LMA Framework Questions</div>
+            {qa_html if qa_html else '<p>No extraction answers available.</p>'}
+        </div>
+        
+        <div class="footer">
+            <p>Generated by GLC Platform AI Agent | {datetime.now().strftime('%Y-%m-%d %H:%M')} | Confidence: {confidence:.0f}%</p>
+            <p>This report is auto-generated from sustainability documents using AI-powered extraction.</p>
+        </div>
+    </body>
+    </html>
+    '''
+    
+    return html

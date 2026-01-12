@@ -52,5 +52,5 @@ todo.md
 prompt.md
 loan_assets/*
 !loan_assets/init.txt
-vector_store/*
-!vector_store/init.txt
+vector_db/*
+!vector_db/init.txt

@@ -764,28 +764,36 @@ function renderAITab() {
                         <p class="text-sm text-white/80">${hasAnalysis ? 'Analysis complete - Ready to chat' : 'Click to analyze sustainability & annual reports ➔'}</p>
                     </div>
                 </div>
-                <button id="ai-agent-btn" onclick="window.initiateAIAgent()" class="px-5 py-2.5 bg-white text-indigo-700 font-semibold rounded-lg hover:bg-indigo-50 transition-colors flex items-center gap-2 ${disabledClass}" ${disabledAttr}>
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    ${hasAnalysis ? 'Re-analyze' : 'Initiate AI Agent'}
-                </button>
+                <div class="flex items-center gap-2">
+                    ${hasAnalysis && isLender ? `
+                    <button id="save-ai-btn" onclick="window.saveAIRetrievalPDF()" class="px-4 py-2.5 bg-emerald-500 text-white font-semibold rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Save AI Report
+                    </button>
+                    ` : ''}
+                    <button id="ai-agent-btn" onclick="window.initiateAIAgent()" class="px-5 py-2.5 bg-white text-indigo-700 font-semibold rounded-lg hover:bg-indigo-50 transition-colors flex items-center gap-2 ${disabledClass}" ${disabledAttr}>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        ${hasAnalysis ? 'Re-analyze' : 'Initiate AI Agent'}
+                    </button>
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-10 gap-4">
+            <div class="grid grid-cols-1 lg:grid-cols-10 gap-4" style="min-height: calc(100vh - 280px);">
                 <!-- Data Performance Section -->
-                <div class="lg:col-span-6 rounded-xl border border-purple-200 overflow-hidden">
-                    <div class="bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-3">
+                <div class="lg:col-span-6 rounded-xl border border-purple-200 overflow-hidden flex flex-col">
+                    <div class="bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-3 flex-shrink-0">
                         <h3 class="font-bold text-white flex items-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                             Data Performance
                         </h3>
                     </div>
-                    <div id="data-performance-content" class="p-5 bg-gradient-to-br from-purple-50 to-indigo-100 min-h-[300px]">
+                    <div id="data-performance-content" class="p-5 bg-gradient-to-br from-purple-50 to-indigo-100 flex-1 overflow-y-auto">
                         ${hasAnalysis ? renderDataPerformance(docAnalysis) : renderEmptyDataPerformance()}
                     </div>
                 </div>
 
-                <!-- Document Chat Section -->
-                <div class="lg:col-span-4 bg-indigo-950/40 rounded-xl border border-purple-200 overflow-hidden text-white flex flex-col h-[420px]">
+                <!-- Document Chat Section - Sticky Full Height -->
+                <div class="lg:col-span-4 bg-indigo-950/40 rounded-xl border border-purple-200 overflow-hidden text-white flex flex-col lg:sticky lg:top-4" style="height: calc(100vh - 280px); max-height: 700px;">
                     <div class="bg-gradient-to-r from-indigo-600 to-blue-600 px-5 py-3 flex-shrink-0">
                         <h3 class="font-bold text-white flex items-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
@@ -830,15 +838,15 @@ function renderDataPerformance(data) {
     
     return `
         <div class="space-y-6">
-            <!-- Essential Points -->
+            <!-- Essential Points - Masonry Layout -->
             ${essentialPoints.length ? `
             <div>
                 <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
                     <span class="text-lg">💡</span> Essential Points
                 </h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="columns-1 md:columns-2 gap-3 space-y-3">
                     ${essentialPoints.map(p => `
-                        <div class="p-3 rounded-lg border ${p.importance === 'critical' ? 'bg-red-50 border-red-200' : p.importance === 'high' ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}">
+                        <div class="break-inside-avoid p-3 rounded-lg border ${p.importance === 'critical' ? 'bg-red-50 border-red-200' : p.importance === 'high' ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'}">
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="px-2 py-0.5 rounded text-xs font-bold ${p.importance === 'critical' ? 'bg-red-100 text-red-700' : p.importance === 'high' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'}">${p.importance.toUpperCase()}</span>
                                 <span class="text-xs text-gray-500">${p.category}</span>
@@ -1590,4 +1598,50 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// ============ SAVE AI RETRIEVAL PDF ============
+window.saveAIRetrievalPDF = async function() {
+    const user = JSON.parse(localStorage.getItem('glc_user'));
+    if (user?.role !== 'lender') {
+        alert('Only lenders can save AI reports.');
+        return;
+    }
+    
+    const appId = window.currentAuditAppId;
+    if (!appId || !analysisData) {
+        alert('No analysis data available. Please run AI Agent first.');
+        return;
+    }
+    
+    const btn = document.getElementById('save-ai-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Generating...`;
+    }
+    
+    try {
+        const response = await apiCall(`/documents/save-ai-report/${appId}`, {
+            method: 'POST'
+        });
+        
+        if (response.success) {
+            alert('AI Retrieval Insights report saved successfully! You can find it in Loan Assets.');
+            if (btn) {
+                btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Saved!`;
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> Save AI Report`;
+                }, 2000);
+            }
+        } else {
+            throw new Error(response.message || 'Failed to save report');
+        }
+    } catch (error) {
+        alert('Failed to save AI report: ' + (error.message || 'Unknown error'));
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> Save AI Report`;
+        }
+    }
+};
 

@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     # File Storage
     UPLOAD_DIR: Path = Path("./loan_assets")
     FAISS_INDEX_DIR: Path = Path("./faiss_indexes")
-    VECTOR_STORE_PATH: Path = Path("./vector_store")
+    VECTOR_DB_PATH: Path = Path("./vector_db")
 
     # AI Models
     EMBEDDING_MODEL: str = "sentence-transformers/multi-qa-MiniLM-L6-cos-v1"

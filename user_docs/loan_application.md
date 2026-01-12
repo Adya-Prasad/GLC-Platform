@@ -4,41 +4,103 @@ This guide walks you through the process of submitting a new green loan applicat
 
 ## 1. Starting a New Application
 
-Navigate to **"New Application"** in the sidebar. You will see a form requiring project details.
+Navigate to **"New Application"** in the sidebar. The application form is organized into logical sections.
 
-### Step 1: Project Information
-Fill in the core details of your green project:
-- **Project Name**: a descriptive title.
-- **Sector**: e.g., Renewable Energy, Green Buildings, Clean Transportation.
-- **Loan Amount**: Requested capital in USD.
+## 2. Application Sections
 
-### Step 2: Use of Proceeds
-Refencing **Green Loan Principles (GLP)**, clearly describe how the funds will be used.
-*Example: "Construction of a 50MW solar verification plant in Arizona."*
+### Section 1: Organization Details
 
-## 2. Uploading Documents
+| Field | Description | Required |
+| :--- | :--- | :---: |
+| **Organization Name** | Legal name of your company | ✓ |
+| **Sector** | Industry sector (e.g., Renewable Energy, Manufacturing) | ✓ |
+| **Annual Revenue** | Company's annual revenue in USD | Optional |
+| **Tax ID / GST** | Tax identification number | Optional |
+| **Contact Email** | Primary contact email | ✓ |
+| **Contact Phone** | Primary contact phone | ✓ |
 
-The platform uses AI to analyze your documents. Upload evidence to support your application:
+### Section 2: Project Information
 
-- **project_plan.pdf**: Detailed engineering or business plan.
-- **environmental_impact.pdf**: Initial assessments.
-- **permits.pdf**: Local government approvals.
+| Field | Description | Required |
+| :--- | :--- | :---: |
+| **Project Name** | Descriptive title for your green project | ✓ |
+| **Project Type** | New Project or Existing Project | ✓ |
+| **Project Location** | City/Region where project is located | ✓ |
+| **Project PIN Code** | Postal code for precise location mapping | ✓ |
+| **Project Description** | Detailed description of the project | ✓ |
+| **Planned Start Date** | Expected project commencement date | ✓ |
 
-> **Important**: Ensure documents are clear PDFs. Our AI agents will scan these to automatically verify your GLP eligibility!
+### Section 3: Loan Details
 
-## 3. Submission & Review
+| Field | Description | Required |
+| :--- | :--- | :---: |
+| **Loan Amount** | Requested capital amount | ✓ |
+| **Currency** | USD, EUR, INR, etc. | ✓ |
+| **Loan Tenor** | Loan duration in years | ✓ |
+| **Use of Proceeds** | How funds will be utilized (GLP aligned) | ✓ |
+| **Shareholder Entities** | Number of shareholders involved | ✓ |
 
-Once submitted:
-1. **Status**: Changes to "Submitted".
-2. **AI Processing**: The system automatically scans your docs for:
-   - *Use of Proceeds* alignment
-   - *DNSH (Do No Significant Harm)* criteria
-   - *Carbon Lock-in* risks
-3. **Lender Review**: A human lender reviews the AI's scorecard and makes the final decision.
+### Section 4: Emissions Data (Optional but Recommended)
 
-## 4. Tracking Status
+| Field | Description |
+| :--- | :--- |
+| **Scope 1 Emissions** | Direct emissions (tCO2e) |
+| **Scope 2 Emissions** | Indirect energy emissions (tCO2e) |
+| **Scope 3 Emissions** | Value chain emissions (tCO2e) |
+| **Baseline Year** | Reference year for emissions data |
+| **Target Reduction** | Planned emission reduction percentage |
 
-Go to **"My Applications"** to see real-time updates:
-- **Pending**: Under review.
-- **Approved**: Loan granted!
-- **Rejected**: See feedback for reasons (usually missing documents or GLP misalignment).
+### Section 5: ESG Compliance Questionnaire
+
+Answer Yes/No questions about your sustainability practices:
+- Environmental management systems
+- Renewable energy usage
+- Waste management policies
+- Employee safety programs
+- Community engagement
+- And more...
+
+> **Tip**: More "Yes" answers improve your ESG score!
+
+## 3. Uploading Documents
+
+Upload supporting documents to strengthen your application:
+
+| Document Type | Purpose |
+| :--- | :--- |
+| **sustainability_report.pdf** | Annual sustainability or ESG report (Required for AI analysis) |
+| **project_plan.pdf** | Detailed project engineering or business plan |
+| **environmental_impact.pdf** | Environmental impact assessments |
+| **permits.pdf** | Government approvals and permits |
+| **certifications.pdf** | ISO, LEED, or other certifications |
+
+> **Important**: The AI Agent analyzes your `sustainability_report.pdf` to extract ESG metrics and answer LMA Framework questions automatically!
+
+## 4. Submission & Review Process
+
+Once submitted, your application goes through:
+
+1. **Status: Pending** - Application received
+2. **AI Processing** - System automatically analyzes:
+   - Use of Proceeds alignment with GLP categories
+   - DNSH (Do No Significant Harm) criteria
+   - Carbon Lock-in risk assessment
+   - ESG score calculation
+3. **Lender Review** - Human lender reviews AI analysis and makes decision
+4. **Final Decision** - Approved, Rejected, or Request for More Information
+
+## 5. Tracking Your Application
+
+Go to **"My Applications"** or **"Audit Report"** to see:
+- Real-time status updates
+- ESG score and GLP eligibility
+- AI-generated insights
+- Lender feedback and notes
+
+## 6. Tips for Approval
+
+- **Complete all fields**: Missing information delays review
+- **Upload sustainability report**: Enables AI analysis for better scoring
+- **Be specific in Use of Proceeds**: Align with GLP categories
+- **Provide emissions data**: Shows commitment to transparency
+- **Answer questionnaire honestly**: Helps accurate ESG assessment
