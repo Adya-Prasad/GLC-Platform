@@ -267,57 +267,97 @@ def calculate_dynamic_esg_score(
     """
     Calculate a comprehensive ESG score based on multiple factors.
     Returns a score from 0-100.
+    
+    Scoring breakdown:
+    - Questionnaire responses: 30 points max
+    - GLP Compliance (4 components): 25 points max
+    - DNSH Assessment: 15 points max
+    - Sector Risk: 10 points max
+    - Data Completeness: 15 points max
+    - Emissions Reporting: 5 points max
     """
     score = 0.0
-    max_score = 100.0
     
-    # 1. Questionnaire Score (25 points max)
+    # 1. Questionnaire Score (30 points max)
     q_score = questionnaire_score.get("total", 0)
     q_max = questionnaire_score.get("max_score", 100)
-    questionnaire_contribution = (q_score / q_max * 25) if q_max > 0 else 0
+    if q_max > 0 and q_score > 0:
+        questionnaire_contribution = (q_score / q_max) * 30
+    else:
+        # If no questionnaire, give partial credit for having the loan application
+        questionnaire_contribution = 10  # Base score
     score += questionnaire_contribution
     
     # 2. GLP Compliance (25 points max)
     glp_score = glp_compliance.get("score", 0)
     glp_max = glp_compliance.get("max_score", 4)
-    glp_contribution = (glp_score / glp_max * 25) if glp_max > 0 else 0
+    if glp_max > 0:
+        glp_contribution = (glp_score / glp_max) * 25
+    else:
+        glp_contribution = 0
     score += glp_contribution
     
-    # 3. DNSH Assessment (20 points max)
+    # 3. DNSH Assessment (15 points max)
     if dnsh_summary.get("overall_pass", False):
-        dnsh_contribution = 20
+        dnsh_contribution = 15
     else:
         passed = dnsh_summary.get("passed_count", 0)
-        total = dnsh_summary.get("passed_count", 0) + dnsh_summary.get("failed_count", 0) + dnsh_summary.get("unclear_count", 0)
-        dnsh_contribution = (passed / total * 15) if total > 0 else 5
+        failed = dnsh_summary.get("failed_count", 0)
+        unclear = dnsh_summary.get("unclear_count", 0)
+        total = passed + failed + unclear
+        if total > 0:
+            # Partial credit based on passed criteria
+            dnsh_contribution = (passed / total) * 12 + 3  # Min 3 points for having assessment
+        else:
+            dnsh_contribution = 8  # Default if no assessment
     score += dnsh_contribution
     
-    # 4. Sector Risk (15 points max) - Lower risk = higher score
+    # 4. Sector Risk (10 points max) - Lower risk = higher score
     risk_level = sector_risk.get("level", "medium")
     if risk_level == "low":
-        score += 15
-    elif risk_level == "medium":
         score += 10
+    elif risk_level == "medium":
+        score += 7
     else:  # high
-        score += 5
+        score += 4
     
-    # 5. Use of Proceeds Validity (10 points max)
-    if uop_result.get("is_valid", False):
-        uop_confidence = uop_result.get("confidence", 0.5)
-        score += 10 * uop_confidence
-    
-    # 6. Data Completeness Bonus (5 points max)
+    # 5. Data Completeness (15 points max)
     completeness_fields = [
-        loan_app.scope1_tco2, loan_app.scope2_tco2, loan_app.scope3_tco2,
-        loan_app.baseline_year, loan_app.target_reduction, loan_app.kpi_metrics,
-        loan_app.reporting_frequency
+        loan_app.project_name,
+        loan_app.sector,
+        loan_app.use_of_proceeds,
+        loan_app.project_description,
+        loan_app.amount_requested,
+        loan_app.reporting_frequency,
+        loan_app.project_location,
     ]
-    filled = sum(1 for f in completeness_fields if f)
-    completeness_bonus = (filled / len(completeness_fields)) * 5
-    score += completeness_bonus
+    filled_basic = sum(1 for f in completeness_fields if f)
+    basic_completeness = (filled_basic / len(completeness_fields)) * 10
+    
+    # Bonus for emissions data
+    emissions_fields = [loan_app.scope1_tco2, loan_app.scope2_tco2, loan_app.scope3_tco2]
+    has_emissions = sum(1 for f in emissions_fields if f and f > 0)
+    emissions_bonus = (has_emissions / 3) * 3
+    
+    # Bonus for KPIs and targets
+    kpi_bonus = 2 if (loan_app.kpi_metrics and len(loan_app.kpi_metrics) > 0) else 0
+    
+    score += basic_completeness + emissions_bonus + kpi_bonus
+    
+    # 6. Emissions Reporting Bonus (5 points max)
+    if loan_app.baseline_year and loan_app.target_reduction:
+        score += 5
+    elif loan_app.baseline_year or loan_app.target_reduction:
+        score += 2.5
     
     # Ensure score is within bounds
-    return round(min(max(score, 0), max_score), 1)
+    final_score = round(min(max(score, 0), 100), 1)
+    
+    # Minimum score of 25 if application has basic data
+    if loan_app.project_name and loan_app.sector and final_score < 25:
+        final_score = 25.0
+    
+    return final_score
 
 
 def calculate_emissions_metrics(app_data: Dict) -> Dict[str, Any]:
@@ -392,12 +432,29 @@ async def get_full_analysis(
         "target_reduction": loan_app.target_reduction,
     }
     
-    # Run GLP analysis
-    uop_result = esg_framework_engine.validate_use_of_proceeds(
+    # Run GLP analysis - use multiple data sources for better matching
+    combined_use_of_proceeds = " ".join(filter(None, [
         loan_app.use_of_proceeds or "",
+        loan_app.project_description or "",
+        loan_app.project_name or "",
+        loan_app.sector or ""
+    ]))
+    
+    uop_result = esg_framework_engine.validate_use_of_proceeds(
+        combined_use_of_proceeds,
         loan_app.sector or "",
         loan_app.project_type or "New"
     )
+    
+    # If UOP validation failed but we have good questionnaire data, give partial credit
+    if not uop_result.get("is_valid") and loan_app.questionnaire_data:
+        q_data = loan_app.questionnaire_data
+        positive_answers = sum(1 for k, v in q_data.items() if v in ["yes", "high", "fully_compliant", "comprehensive", "none"])
+        if positive_answers >= 5:
+            uop_result["is_valid"] = True
+            uop_result["confidence"] = min(0.7, 0.4 + (positive_answers * 0.05))
+            uop_result["glp_category"] = uop_result.get("glp_category") or "Sustainability-Linked"
+            uop_result["assessment"] = "Project qualifies based on strong ESG questionnaire responses."
     
     # Run DNSH assessment
     dnsh_results = esg_framework_engine.assess_dnsh(project_data, "")
@@ -476,9 +533,9 @@ async def get_full_analysis(
         
         # ESG Analysis tab data
         "esg_analysis": {
-            "esg_score": loan_app.esg_score,
-            "glp_eligibility": loan_app.glp_eligibility,
-            "glp_category": loan_app.glp_category or uop_result.get("glp_category"),
+            "esg_score": esg_score,  # Use calculated score
+            "glp_eligibility": uop_result.get("is_valid", False),  # Use calculated eligibility
+            "glp_category": uop_result.get("glp_category") or loan_app.glp_category or "Unknown",
             "glp_confidence": uop_result.get("confidence", 0),
             "green_indicators": uop_result.get("green_indicators", []),
             "red_flags": uop_result.get("red_flags", []),

@@ -198,6 +198,7 @@ class LoanApplicationListItem(BaseModel):
     planned_start_date: Optional[str]
     shareholder_entities: Optional[int] = 0
     created_at: datetime
+    annual_revenue: Optional[float] = None
     
     class Config:
         from_attributes = True

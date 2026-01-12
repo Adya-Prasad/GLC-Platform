@@ -40,15 +40,6 @@ export async function renderAuditPage() {
                     <div class="text-right">
                         <p class="text-gray-600 text-[15px]">Loan Amount</p>
                         <p class="text-2xl font-bold text-amber-700">${formatCurrency(h.amount_requested, h.currency)}</p>
-                        ${isLender ? `
-                        <div class="mt-3">
-                            <select id="status-select" onchange="window.updateLoanStatus(${appId}, this.value)" class="px-3 py-2 border rounded-lg text-sm font-medium">
-                                <option value="pending" ${h.status === 'pending' ? 'selected' : ''}>Pending</option>
-                                <option value="under_review" ${h.status === 'under_review' ? 'selected' : ''}>Under Review</option>
-                                <option value="approved" ${h.status === 'approved' ? 'selected' : ''}>Approved</option>
-                                <option value="rejected" ${h.status === 'rejected' ? 'selected' : ''}>Rejected</option>
-                            </select>
-                        </div>` : ''}
                     </div>
                 </div>
             </div>
@@ -922,13 +913,13 @@ function renderDataPerformance(data) {
             ${Object.keys(extractions).length ? `
             <div>
                 <h4 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                    <span class="text-lg">�</span> LMA Framework Questions
+                    <span class="text-lg">📋</span> LMA Framework Questions
                 </h4>
                 <div class="space-y-2">
                     ${Object.entries(extractions).map(([q, a]) => `
                         <div class="p-3 bg-gray-50 rounded-lg border">
                             <p class="font-medium text-sm text-gray-700 mb-1">${q}</p>
-                            <p class="text-sm text-gray-600 ${a.includes('Not found') ? 'italic text-gray-400' : ''}">${a}</p>
+                            <p class="text-sm text-gray-600 ${(a.includes('Not found') || a.includes('not clearly stated')) ? 'italic text-gray-400' : ''}">${a}</p>
                         </div>
                     `).join('')}
                 </div>
@@ -977,7 +968,7 @@ function renderDecisionTab() {
             ` : ''}
             
             <!-- Status Change Card -->
-            <div class="bg-gradient-to-r from-slate-700 to-slate-800 rounded-xl p-6 text-white">
+            <div class="bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl p-6 text-white">
                 <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     Loan Application Decision
@@ -996,7 +987,7 @@ function renderDecisionTab() {
                                 <option value="approved" ${currentStatus === 'approved' ? 'selected' : ''}>Approved</option>
                                 <option value="rejected" ${currentStatus === 'rejected' ? 'selected' : ''}>Rejected</option>
                             </select>
-                            <button onclick="window.confirmStatusChange()" class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors ${disabledClass}" ${disabledAttr}>
+                            <button onclick="window.confirmStatusChange()" class="px-6 py-2 bg-[var(--green)] hover:bg-green-600 text-white rounded-lg font-medium transition-colors ${disabledClass}" ${disabledAttr}>
                                 Confirm
                             </button>
                         </div>
@@ -1032,25 +1023,9 @@ function renderDecisionTab() {
                 <textarea id="lender-decision" class="w-full h-32 p-4 border rounded-lg text-sm resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500 ${disabledClass}" placeholder="${!isLender ? 'Only lenders can add notes' : 'Add your notes and decision rationale here...'}" ${disabledAttr}></textarea>
                 <div class="mt-3 flex justify-between items-center">
                     <p class="text-xs text-gray-500">${!isLender ? 'View-only mode for borrowers' : 'Notes will be saved to the audit trail'}</p>
-                    <button onclick="window.saveDecision()" class="px-4 py-2 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-800 ${disabledClass}" ${disabledAttr}>Save Notes</button>
+                    <button onclick="window.saveDecision()" class="px-4 py-2 bg-[var(--green)] text-white rounded-lg font-medium hover:bg-gray-800 ${disabledClass}" ${disabledAttr}>Save Notes</button>
                     
                 </div>
-            </div>
-
-            <!-- Quick Actions -->
-            <div class="flex flex-wrap gap-3">
-                <button onclick="window.requestDocuments()" class="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 flex items-center gap-2 ${disabledClass}" ${disabledAttr}>
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    Request Documents
-                </button>
-                <button onclick="window.scheduleReview()" class="px-4 py-2 bg-purple-500 text-white rounded-lg font-medium hover:bg-purple-600 flex items-center gap-2 ${disabledClass}" ${disabledAttr}>
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    Schedule Review
-                </button>
-                <button onclick="window.generateReport()" class="px-4 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 flex items-center gap-2 ${disabledClass}" ${disabledAttr}>
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    Export Report
-                </button>
             </div>
         </div>
     `;

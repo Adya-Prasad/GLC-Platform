@@ -409,6 +409,32 @@ async def list_applications(status: Optional[str] = None, sector: Optional[str] 
     applications = query.order_by(LoanApplication.created_at.desc()).all()
     result = []
     for app in applications:
+        # Calculate ESG score if not stored
+        esg_score = app.esg_score
+        if esg_score is None:
+            # Estimate ESG score based on data completeness
+            score = 25  # Base score
+            if app.questionnaire_data:
+                q_data = app.questionnaire_data
+                positive = sum(1 for k, v in q_data.items() if v in ["yes", "high", "fully_compliant", "comprehensive", "none"])
+                score += min(30, positive * 3)
+            if app.scope1_tco2 or app.scope2_tco2 or app.scope3_tco2:
+                score += 10
+            if app.baseline_year and app.target_reduction:
+                score += 10
+            if app.reporting_frequency:
+                score += 5
+            if app.kpi_metrics and len(app.kpi_metrics) > 0:
+                score += 5
+            esg_score = min(100, score)
+        
+        # Calculate GLP eligibility if not stored
+        glp_eligible = app.glp_eligibility
+        if glp_eligible is None and app.questionnaire_data:
+            q_data = app.questionnaire_data
+            positive = sum(1 for k, v in q_data.items() if v in ["yes", "high", "fully_compliant", "comprehensive", "none"])
+            glp_eligible = positive >= 5
+        
         result.append(LoanApplicationListItem(
             id=app.id,
             loan_id=app.loan_id,
@@ -419,11 +445,12 @@ async def list_applications(status: Optional[str] = None, sector: Optional[str] 
             amount_requested=app.amount_requested,
             currency=app.currency,
             status=app.status,
-            esg_score=app.esg_score,
-            glp_eligibility=app.glp_eligibility,
+            esg_score=esg_score,
+            glp_eligibility=glp_eligible,
             planned_start_date=(app.planned_start_date.date().isoformat() if hasattr(app.planned_start_date, 'date') else (app.planned_start_date if isinstance(app.planned_start_date, str) else None)),
             shareholder_entities=app.shareholder_entities,
-            created_at=app.created_at
+            created_at=app.created_at,
+            annual_revenue=app.annual_revenue
         ))
     return result
 
@@ -525,18 +552,69 @@ async def get_portfolio_summary(db: Session = Depends(get_db), current_user: Use
     total_apps = len(applications)
     total_financed = sum(a.amount_requested for a in applications if a.status == ApplicationStatus.APPROVED)
     total_co2 = sum((a.total_tco2 or 0) for a in applications if a.status == ApplicationStatus.APPROVED)
-    green_projects = sum(1 for a in applications if a.glp_eligibility)
+    
+    # Calculate green projects - consider projects with good questionnaire data as potentially green
+    green_projects = 0
+    for a in applications:
+        if a.glp_eligibility:
+            green_projects += 1
+        elif a.questionnaire_data:
+            # Check if questionnaire indicates green eligibility
+            q_data = a.questionnaire_data
+            positive_answers = sum(1 for k, v in q_data.items() if v in ["yes", "high", "fully_compliant", "comprehensive", "none"])
+            if positive_answers >= 5:
+                green_projects += 1
+    
     pending = sum(1 for a in applications if a.status in [ApplicationStatus.PENDING, ApplicationStatus.UNDER_REVIEW])
     approved = sum(1 for a in applications if a.status == ApplicationStatus.APPROVED)
     rejected = sum(1 for a in applications if a.status == ApplicationStatus.REJECTED)
     flagged = sum(1 for a in applications if a.carbon_lockin_risk == "high")
-    esg_scores = [a.esg_score for a in applications if a.esg_score is not None]
+    
+    # Calculate ESG scores - use stored or estimate based on data completeness
+    esg_scores = []
+    for a in applications:
+        if a.esg_score is not None:
+            esg_scores.append(a.esg_score)
+        else:
+            # Estimate ESG score based on data completeness
+            score = 25  # Base score
+            if a.questionnaire_data:
+                q_data = a.questionnaire_data
+                positive = sum(1 for k, v in q_data.items() if v in ["yes", "high", "fully_compliant", "comprehensive", "none"])
+                score += min(30, positive * 3)
+            if a.scope1_tco2 or a.scope2_tco2 or a.scope3_tco2:
+                score += 10
+            if a.baseline_year and a.target_reduction:
+                score += 10
+            if a.reporting_frequency:
+                score += 5
+            if a.kpi_metrics and len(a.kpi_metrics) > 0:
+                score += 5
+            esg_scores.append(min(100, score))
+    
     avg_esg = sum(esg_scores) / len(esg_scores) if esg_scores else 0
+    
     sectors = {}
     for a in applications:
-        sectors[a.sector] = sectors.get(a.sector, 0) + 1
+        if a.sector:
+            sectors[a.sector] = sectors.get(a.sector, 0) + 1
+    
     status_breakdown = {"pending": 0, "under_review": 0, "approved": 0, "rejected": 0, "needs_info": 0}
     for a in applications:
         if a.status:
             status_breakdown[a.status.value] = status_breakdown.get(a.status.value, 0) + 1
-    return PortfolioSummary(total_applications=total_apps, total_financed_amount=total_financed, total_financed_co2=total_co2, num_green_projects=green_projects, num_pending=pending, num_approved=approved, num_rejected=rejected, percent_eligible_green=(green_projects / total_apps * 100) if total_apps > 0 else 0, avg_esg_score=round(avg_esg, 1), flagged_count=flagged, sector_breakdown=sectors, status_breakdown=status_breakdown)
+    
+    return PortfolioSummary(
+        total_applications=total_apps, 
+        total_financed_amount=total_financed, 
+        total_financed_co2=total_co2, 
+        num_green_projects=green_projects, 
+        num_pending=pending, 
+        num_approved=approved, 
+        num_rejected=rejected, 
+        percent_eligible_green=(green_projects / total_apps * 100) if total_apps > 0 else 0, 
+        avg_esg_score=round(avg_esg, 1), 
+        flagged_count=flagged, 
+        sector_breakdown=sectors, 
+        status_breakdown=status_breakdown
+    )
