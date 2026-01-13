@@ -4,7 +4,11 @@ Welcome to the Green Lending Cycle (GLC) Platform! This guide helps you get star
 
 ## 1. Getting Started
 
+> In localhost setup case
+
 Navigate to the login page at `http://localhost:8000`. You'll see role selection options.
+
+> On deployed version, home page, user can begin with `/login` page
 
 ## 2. User Roles
 
@@ -17,10 +21,10 @@ Navigate to the login page at `http://localhost:8000`. You'll see role selection
 
 For quick testing, use these pre-configured accounts:
 
-| Role | Email/Name | Passcode |
+| Role | Email/username | Passcode |
 | :--- | :--- | :--- |
-| **Lender** | lender@glc.com | lender123 |
-| **Borrower** | borrower@glc.com | borrower123 |
+| **Lender** | BorrowerUser | lender123 |
+| **Borrower** | LenderUser | borrower123 |
 
 ## 4. Creating a New Account
 
